@@ -79,7 +79,14 @@ func (ed *EmployeeStorage) Find(id string) (*types.Employee, error) {
 		return result, err
 	}
 	return result, nil
+}
 
+func (ed *EmployeeStorage) Add(e *types.Employee) error {
+	_, err := ed.con.Exec("INSERT INTO employees (id, first_name, last_name, salary) VALUES ($1,$2,$3,$4)", e.ID, e.FirstName, e.LastName, e.Salary)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 

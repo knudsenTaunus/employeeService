@@ -11,6 +11,7 @@ import (
 type Database interface {
 	FindAllEmployees() ([]*types.Employee, error)
 	Find(id string) (*types.Employee, error)
+	Add(employee *types.Employee) error
 }
 
 type EmployeeHandler struct {
@@ -47,6 +48,17 @@ func (h *EmployeeHandler) Get() http.HandlerFunc {
 		err = json.NewEncoder(w).Encode(employee)
 		if err != nil {
 			http.Error(w, http.StatusText(404),404)
+		}
+	}
+}
+
+func (h *EmployeeHandler) Add() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		employee := &types.Employee{}
+		err := employee.FromJSON(r.Body)
+		err = h.Database.Add(employee)
+		if err != nil {
+			http.Error(w, http.StatusText(501),501)
 		}
 	}
 }
