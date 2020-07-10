@@ -1,9 +1,10 @@
-package database
+package storage
 
 import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 
 	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
 	_ "github.com/mattn/go-sqlite3"
@@ -19,12 +20,19 @@ const (
 	table    = "employees"
 )
 
-// NewDB builds the connection to a database and returns a handle
+// NewDB builds the connection to a storage and returns a handle
 // if the flag environment is set to development a local sqlite is created, sample
 // data is inserted and the connection to it is returned
-// If the flag is set to anything else the connection to an existing database is
+// If the flag is set to anything else the connection to an existing storage is
 // established according to the const values.
-func NewDB() (*sql.DB, error) {
+
+
+
+type EmployeeStorage struct {
+	con *sql.DB
+}
+
+func New() (*EmployeeStorage, error) {
 	env := flag.String("environment", "development", "environment to run the app in")
 	flag.Parse()
 	if *env == "development" {
@@ -34,7 +42,6 @@ func NewDB() (*sql.DB, error) {
 		}
 		return db, nil
 	}
-
 	db, err := newSQLDatabase()
 	if err != nil {
 		return nil, err
@@ -42,7 +49,41 @@ func NewDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func newSQLiteDatabase() (*sql.DB, error) {
+func (ed *EmployeeStorage) FindAllEmployees() ([]*types.Employee, error) {
+	employees := make([]*types.Employee, 0)
+	rows, err := ed.con.Query("SELECT * FROM employees")
+	defer rows.Close()
+	if err != nil {
+		log.Fatalf("Could not get from storage %v", err)
+	}
+	for rows.Next() {
+		tmp := new(types.Employee)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary)
+		employees = append(employees, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return employees, nil
+}
+
+func (ed *EmployeeStorage) Find(id string) (*types.Employee, error) {
+	result := &types.Employee{}
+	row := ed.con.QueryRow("SELECT * FROM employees WHERE id = $1", id)
+	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary); err {
+	case sql.ErrNoRows:
+		return result, err
+	}
+	return result, nil
+
+}
+
+
+func newSQLiteDatabase() (*EmployeeStorage, error) {
 	db, err := sql.Open("sqlite3", "../development.db")
 	if err != nil {
 		return nil, err
@@ -55,21 +96,27 @@ func newSQLiteDatabase() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return &EmployeeStorage{
+		con: db,
+	}, nil
 }
 
-func newSQLDatabase() (*sql.DB, error) {
+
+
+func newSQLDatabase() (*EmployeeStorage, error) {
 	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, address, port, table)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return &EmployeeStorage{
+		con: db,
+	}, nil
 }
 
 func insertSampleData(db *sql.DB) error {
-
 	joe := &types.Employee{
+		ID: 1,
 		FirstName: "Joe",
 		LastName:  "Sample",
 		Salary:    50000,

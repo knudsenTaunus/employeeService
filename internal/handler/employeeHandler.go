@@ -1,21 +1,26 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
+	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
 	"net/http"
 )
 
-type EmployeeHandler struct {
-	db *sql.DB
+type Database interface {
+	FindAllEmployees() ([]*types.Employee, error)
+	Find(id string) (*types.Employee, error)
 }
 
-func New(db *sql.DB) *EmployeeHandler {
-	h := &EmployeeHandler{
-		db: db,
+type EmployeeHandler struct {
+	Database Database
+}
+
+func New(db Database) *EmployeeHandler {
+	return &EmployeeHandler{
+		Database: db,
 	}
-	return h
 }
 
 func (h *EmployeeHandler) GetIndex() http.HandlerFunc {
@@ -27,9 +32,28 @@ func (h *EmployeeHandler) GetIndex() http.HandlerFunc {
 	}
 }
 
+func (h *EmployeeHandler) Get() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idString := params["id"]
+		employee, err := h.Database.Find(idString)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, http.StatusText(500),500)
+		}
+		if err != nil {
+			http.Error(w, http.StatusText(404),404)
+		}
+		err = json.NewEncoder(w).Encode(employee)
+		if err != nil {
+			http.Error(w, http.StatusText(404),404)
+		}
+	}
+}
+
 func (h *EmployeeHandler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res, err := types.AllEmployees(h.db)
+		res, err := h.Database.FindAllEmployees()
 		if err != nil {
 			http.Error(w, http.StatusText(500),500)
 		}
