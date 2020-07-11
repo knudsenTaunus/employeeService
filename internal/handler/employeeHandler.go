@@ -12,6 +12,7 @@ type Database interface {
 	FindAllEmployees() ([]*types.Employee, error)
 	Find(id string) (*types.Employee, error)
 	Add(employee *types.Employee) error
+	Remove(id string) error
 }
 
 type EmployeeHandler struct {
@@ -36,8 +37,8 @@ func (h *EmployeeHandler) GetIndex() http.HandlerFunc {
 func (h *EmployeeHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
-		idString := params["id"]
-		employee, err := h.Database.Find(idString)
+		id := params["id"]
+		employee, err := h.Database.Find(id)
 		if err != nil {
 			fmt.Println(err)
 			http.Error(w, http.StatusText(500),500)
@@ -61,6 +62,18 @@ func (h *EmployeeHandler) Add() http.HandlerFunc {
 			http.Error(w, http.StatusText(501),501)
 		}
 	}
+}
+
+func (h *EmployeeHandler) Remove() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		id := params["id"]
+		err := h.Database.Remove(id)
+		if err != nil {
+			http.Error(w, http.StatusText(501),501)
+		}
+	}
+
 }
 
 func (h *EmployeeHandler) GetAll() http.HandlerFunc {

@@ -58,7 +58,7 @@ func (ed *EmployeeStorage) FindAllEmployees() ([]*types.Employee, error) {
 	}
 	for rows.Next() {
 		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -74,7 +74,7 @@ func (ed *EmployeeStorage) FindAllEmployees() ([]*types.Employee, error) {
 func (ed *EmployeeStorage) Find(id string) (*types.Employee, error) {
 	result := &types.Employee{}
 	row := ed.con.QueryRow("SELECT * FROM employees WHERE id = $1", id)
-	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary); err {
+	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday); err {
 	case sql.ErrNoRows:
 		return result, err
 	}
@@ -82,7 +82,7 @@ func (ed *EmployeeStorage) Find(id string) (*types.Employee, error) {
 }
 
 func (ed *EmployeeStorage) Add(e *types.Employee) error {
-	_, err := ed.con.Exec("INSERT INTO employees (id, first_name, last_name, salary) VALUES ($1,$2,$3,$4)", e.ID, e.FirstName, e.LastName, e.Salary)
+	_, err := ed.con.Exec("INSERT INTO employees (id, first_name, last_name, salary, birthday) VALUES ($1,$2,$3,$4)", e.ID, e.FirstName, e.LastName, e.Salary, e.Birthday)
 	if err != nil {
 		return err
 	}
@@ -90,16 +90,29 @@ func (ed *EmployeeStorage) Add(e *types.Employee) error {
 }
 
 
+func (ed *EmployeeStorage) Remove(id string) error {
+	_, err := ed.con.Exec("DELETE FROM employees WHERE id = $1",id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func newSQLiteDatabase() (*EmployeeStorage, error) {
 	db, err := sql.Open("sqlite3", "../development.db")
 	if err != nil {
 		return nil, err
 	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `employees` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`first_name` VARCHAR(64), `last_name` VARCHAR(64), `salary` INTEGER);")
+	_, err = db.Exec("DROP TABLE `employees`")
+	if err != nil {
+		return nil, err
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `employees` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`first_name` VARCHAR(64), `last_name` VARCHAR(64), `salary` INTEGER, `birthday` TEXT);")
 	if err != nil {
 		return nil, err
 	}
 	err = insertSampleData(db)
+
 	if err != nil {
 		return nil, err
 	}
@@ -127,10 +140,12 @@ func insertSampleData(db *sql.DB) error {
 		FirstName: "Joe",
 		LastName:  "Sample",
 		Salary:    50000,
+		Birthday: "14.07.1988",
+
 	}
 
-	stmt := "INSERT OR IGNORE INTO employees (id, first_name, last_name, salary) VALUES (?, ?, ?, ?)"
-	_, err := db.Exec(stmt, joe.ID, joe.FirstName, joe.LastName, joe.Salary)
+	stmt := "INSERT OR IGNORE INTO employees (id, first_name, last_name, salary, birthday) VALUES (?, ?, ?, ?, ?)"
+	_, err := db.Exec(stmt, joe.ID, joe.FirstName, joe.LastName, joe.Salary, joe.Birthday)
 	if err != nil {
 		return err
 	}

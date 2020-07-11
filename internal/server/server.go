@@ -11,6 +11,7 @@ type HandlerInterface interface {
 	GetAll() http.HandlerFunc
 	Get() http.HandlerFunc
 	Add() http.HandlerFunc
+	Remove() http.HandlerFunc
 }
 
 // Server is a struct which contains all dependencies for this microservice
@@ -36,13 +37,16 @@ func (s *Server) StartServer() {
 	fmt.Println("Server started")
 
 	getRouter := s.router.Methods(http.MethodGet).Subrouter()
-	getRouter.Handle("/", s.employeeHandler.GetIndex())
 	getRouter.Handle("/all", s.employeeHandler.GetAll())
 	getRouter.Handle("/{id}", s.employeeHandler.Get())
 
 
 	postRouter := s.router.Methods(http.MethodPost).Subrouter()
 	postRouter.Handle("/employee", s.employeeHandler.Add())
+
+	deleteRouter := s.router.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.Handle("/{id}", s.employeeHandler.Remove())
+
 
 	err := http.ListenAndServe(":8080", s.router)
 	if err != nil {

@@ -11,6 +11,7 @@ type Employee struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Salary    int `json:"salary"`
+	Birthday string `json:"birthday"`
 }
 
 func (e *Employee) FromJSON(r io.Reader) error {
