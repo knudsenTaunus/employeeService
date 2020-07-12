@@ -1,4 +1,4 @@
-package handler
+package employee
 
 import (
 	"encoding/json"
@@ -10,6 +10,7 @@ import (
 
 type Database interface {
 	FindAllEmployees() ([]*types.Employee, error)
+	FindAllEmployeesLimit(limit string) ([]*types.Employee, error)
 	Find(id string) (*types.Employee, error)
 	Add(employee *types.Employee) error
 	Remove(id string) error
@@ -25,19 +26,9 @@ func New(db Database) *EmployeeHandler {
 	}
 }
 
-func (h *EmployeeHandler) GetIndex() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := json.NewEncoder(w).Encode("Welcome")
-		if err != nil {
-			http.Error(w, http.StatusText(404),404)
-		}
-	}
-}
-
 func (h *EmployeeHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		id := params["id"]
+		id := mux.Vars(r)["id"]
 		employee, err := h.Database.Find(id)
 		if err != nil {
 			fmt.Println(err)
@@ -66,8 +57,7 @@ func (h *EmployeeHandler) Add() http.HandlerFunc {
 
 func (h *EmployeeHandler) Remove() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		id := params["id"]
+		id := mux.Vars(r)["id"]
 		err := h.Database.Remove(id)
 		if err != nil {
 			http.Error(w, http.StatusText(501),501)
@@ -78,6 +68,18 @@ func (h *EmployeeHandler) Remove() http.HandlerFunc {
 
 func (h *EmployeeHandler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limit := r.URL.Query().Get("limit")
+		if limit != "" {
+			res, err := h.Database.FindAllEmployeesLimit(limit)
+			if err != nil {
+				http.Error(w, http.StatusText(500),500)
+			}
+			err = json.NewEncoder(w).Encode(res)
+			if err != nil {
+				http.Error(w, http.StatusText(404),404)
+			}
+			return
+		}
 		res, err := h.Database.FindAllEmployees()
 		if err != nil {
 			http.Error(w, http.StatusText(500),500)
@@ -85,6 +87,6 @@ func (h *EmployeeHandler) GetAll() http.HandlerFunc {
 		err = json.NewEncoder(w).Encode(res)
 		if err != nil {
 				http.Error(w, http.StatusText(404),404)
-			}
+		}
 	}
 }

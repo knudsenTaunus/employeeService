@@ -3,11 +3,11 @@ package server
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/janPhil/mySQLHTTPRestGolang/internal/handler"
 	"net/http"
 )
 
 type HandlerInterface interface {
-	GetIndex() http.HandlerFunc
 	GetAll() http.HandlerFunc
 	Get() http.HandlerFunc
 	Add() http.HandlerFunc
@@ -37,15 +37,15 @@ func (s *Server) StartServer() {
 	fmt.Println("Server started")
 
 	getRouter := s.router.Methods(http.MethodGet).Subrouter()
-	getRouter.Handle("/all", s.employeeHandler.GetAll())
-	getRouter.Handle("/{id}", s.employeeHandler.Get())
-
+	getRouter.Handle("/employees", s.employeeHandler.GetAll())
+	getRouter.Handle("/employees", s.employeeHandler.GetAll()).Queries("limit", "{limit}")
+	getRouter.Handle("/employees/{id}", handler.ValidateMiddleware(s.employeeHandler.Get()))
 
 	postRouter := s.router.Methods(http.MethodPost).Subrouter()
 	postRouter.Handle("/employee", s.employeeHandler.Add())
 
 	deleteRouter := s.router.Methods(http.MethodDelete).Subrouter()
-	deleteRouter.Handle("/{id}", s.employeeHandler.Remove())
+	deleteRouter.Handle("/employees/{id}", s.employeeHandler.Remove())
 
 
 	err := http.ListenAndServe(":8080", s.router)

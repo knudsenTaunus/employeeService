@@ -3,30 +3,13 @@ package storage
 import (
 	"database/sql"
 	"flag"
-	"fmt"
+	"github.com/janPhil/mySQLHTTPRestGolang/internal/storage/development"
+	"github.com/janPhil/mySQLHTTPRestGolang/internal/storage/production"
 	"log"
 
 	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-var db *sql.DB
-
-const (
-	user     = "root"
-	password = "test"
-	address  = "127.0.0.1"
-	port     = "3306"
-	table    = "employees"
-)
-
-// NewDB builds the connection to a storage and returns a handle
-// if the flag environment is set to development a local sqlite is created, sample
-// data is inserted and the connection to it is returned
-// If the flag is set to anything else the connection to an existing storage is
-// established according to the const values.
-
-
 
 type EmployeeStorage struct {
 	con *sql.DB
@@ -36,22 +19,48 @@ func New() (*EmployeeStorage, error) {
 	env := flag.String("environment", "development", "environment to run the app in")
 	flag.Parse()
 	if *env == "development" {
-		db, err := newSQLiteDatabase()
+		db, err := development.NewSQLiteDatabase()
 		if err != nil {
 			return nil, err
 		}
-		return db, nil
+		return &EmployeeStorage{
+			con: db,
+		}, nil
 	}
-	db, err := newSQLDatabase()
+	db, err := production.NewSQLDatabase()
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return &EmployeeStorage{
+		con: db,
+	}, nil
 }
 
 func (ed *EmployeeStorage) FindAllEmployees() ([]*types.Employee, error) {
 	employees := make([]*types.Employee, 0)
 	rows, err := ed.con.Query("SELECT * FROM employees")
+	defer rows.Close()
+	if err != nil {
+		log.Fatalf("Could not get from storage %v", err)
+	}
+	for rows.Next() {
+		tmp := new(types.Employee)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber)
+		employees = append(employees, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return employees, nil
+}
+
+func (ed *EmployeeStorage) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
+	employees := make([]*types.Employee, 0)
+	rows, err := ed.con.Query("SELECT * FROM employees LIMIT $1", limit)
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from storage %v", err)
@@ -82,7 +91,7 @@ func (ed *EmployeeStorage) Find(id string) (*types.Employee, error) {
 }
 
 func (ed *EmployeeStorage) Add(e *types.Employee) error {
-	_, err := ed.con.Exec("INSERT INTO employees (id, first_name, last_name, salary, birthday) VALUES ($1,$2,$3,$4)", e.ID, e.FirstName, e.LastName, e.Salary, e.Birthday)
+	_, err := ed.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES ($1,$2,$3,$4, $5)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber)
 	if err != nil {
 		return err
 	}
@@ -98,56 +107,4 @@ func (ed *EmployeeStorage) Remove(id string) error {
 	return nil
 }
 
-func newSQLiteDatabase() (*EmployeeStorage, error) {
-	db, err := sql.Open("sqlite3", "../development.db")
-	if err != nil {
-		return nil, err
-	}
-	_, err = db.Exec("DROP TABLE `employees`")
-	if err != nil {
-		return nil, err
-	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `employees` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`first_name` VARCHAR(64), `last_name` VARCHAR(64), `salary` INTEGER, `birthday` TEXT);")
-	if err != nil {
-		return nil, err
-	}
-	err = insertSampleData(db)
 
-	if err != nil {
-		return nil, err
-	}
-	return &EmployeeStorage{
-		con: db,
-	}, nil
-}
-
-
-
-func newSQLDatabase() (*EmployeeStorage, error) {
-	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, address, port, table)
-	db, err := sql.Open("mysql", connString)
-	if err != nil {
-		return nil, err
-	}
-	return &EmployeeStorage{
-		con: db,
-	}, nil
-}
-
-func insertSampleData(db *sql.DB) error {
-	joe := &types.Employee{
-		ID: 1,
-		FirstName: "Joe",
-		LastName:  "Sample",
-		Salary:    50000,
-		Birthday: "14.07.1988",
-
-	}
-
-	stmt := "INSERT OR IGNORE INTO employees (id, first_name, last_name, salary, birthday) VALUES (?, ?, ?, ?, ?)"
-	_, err := db.Exec(stmt, joe.ID, joe.FirstName, joe.LastName, joe.Salary, joe.Birthday)
-	if err != nil {
-		return err
-	}
-	return nil
-}
