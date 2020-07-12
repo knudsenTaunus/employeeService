@@ -6,7 +6,7 @@ import (
 	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
 )
 
-func NewSQLiteDatabase() (*sql.DB, error) {
+func New() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "../development.db")
 	if err != nil {
 		return nil, err
@@ -15,10 +15,15 @@ func NewSQLiteDatabase() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = db.Exec("DROP TABLE IF EXISTS `companycars`")
+	if err != nil {
+		return nil, err
+	}
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `employees` (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,`first_name` VARCHAR(64), `last_name` VARCHAR(64), `salary` INTEGER, `birthday` TEXT, employee_number INTEGER UNIQUE);")
 	if err != nil {
 		return nil, err
 	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `companycars` (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,`manufacturer` VARCHAR(64), `type` VARCHAR(64), `number_plate` TEXT, employee_number INTEGER, FOREIGN KEY (employee_number) REFERENCES employees(employee_number));")
 	err = insertSampleData(db)
 
 	if err != nil {
@@ -28,7 +33,7 @@ func NewSQLiteDatabase() (*sql.DB, error) {
 }
 
 func insertSampleData(db *sql.DB) error {
-	data := []*types.Employee{
+	employees := []*types.Employee{
 		{
 			FirstName: "Joe",
 			LastName:  "Biehl",
@@ -63,9 +68,32 @@ func insertSampleData(db *sql.DB) error {
 		},
 	}
 
-	for _, item := range data {
+	cars := []*types.Car{
+		{
+			Manufacturer:   "Mercedes",
+			Type:           "SL600",
+			NumberPlate:    "B-Jo 666",
+			EmployeeNumber: 1,
+		},
+		{
+			Manufacturer:   "BMW",
+			Type:           "525",
+			NumberPlate:    "DD-CK 007",
+			EmployeeNumber: 5,
+		},
+	}
+
+	for _, item := range employees {
 		stmt := "INSERT OR IGNORE INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES (?, ?, ?, ?, ?)"
 		_, err := db.Exec(stmt, item.FirstName, item.LastName, item.Salary, item.Birthday, item.EmployeeNumber)
+		if err != nil {
+			fmt.Print(err)
+		}
+	}
+
+	for _, item := range cars {
+		stmt := "INSERT OR IGNORE INTO companycars (manufacturer, type, number_plate, employee_number) VALUES (?, ?, ?, ?)"
+		_, err := db.Exec(stmt, item.Manufacturer, item.Type, item.NumberPlate, item.EmployeeNumber)
 		if err != nil {
 			fmt.Print(err)
 		}

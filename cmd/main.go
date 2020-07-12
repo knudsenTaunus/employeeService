@@ -16,6 +16,6 @@ func main() {
 	}
 	router := mux.NewRouter()
 	employeeHandler := employee.New(db)
-	s := server.NewServer(employeeHandler, router)
+	s := server.New(employeeHandler, router)
 	s.StartServer()
 }
