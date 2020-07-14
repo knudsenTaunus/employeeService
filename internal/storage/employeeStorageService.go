@@ -108,8 +108,8 @@ func (ed *service) Remove(id string) error {
 	return nil
 }
 
-func (ed *service) GetCars() ([]*types.EmployeeCars, error) {
-	rows, err := ed.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number")
+func (ed *service) GetCars(id string) ([]*types.EmployeeCars, error) {
+	rows, err := ed.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
 	if err != nil {
 		return nil, err
 	}

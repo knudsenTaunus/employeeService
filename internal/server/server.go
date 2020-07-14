@@ -40,7 +40,7 @@ func (s *server) StartServer() {
 	getRouter.Handle("/employees", s.employeeHandler.GetAll())
 	getRouter.Handle("/employees", s.employeeHandler.GetAll()).Queries("limit", "{limit}")
 	getRouter.Handle("/employee/{id}", authorization.ValidateMiddleware(s.employeeHandler.Get()))
-	getRouter.Handle("/employees/cars", authorization.ValidateMiddleware(s.employeeHandler.GetCars()))
+	getRouter.Handle("/employees/{id}/cars", authorization.ValidateMiddleware(s.employeeHandler.GetCars()))
 
 	postRouter := s.router.Methods(http.MethodPost).Subrouter()
 	postRouter.Handle("/employee", s.employeeHandler.Add())

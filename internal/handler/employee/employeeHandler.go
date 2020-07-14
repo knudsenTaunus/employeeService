@@ -14,7 +14,7 @@ type database interface {
 	Find(id string) (*types.Employee, error)
 	Add(employee *types.Employee) error
 	Remove(id string) error
-	GetCars() ([]*types.EmployeeCars, error)
+	GetCars(id string) ([]*types.EmployeeCars, error)
 }
 
 type handler struct {
@@ -94,7 +94,9 @@ func (h *handler) GetAll() http.HandlerFunc {
 
 func (h *handler) GetCars() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cars, err := h.Database.GetCars()
+		id := mux.Vars(r)["id"]
+
+		cars, err := h.Database.GetCars(id)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 		}
