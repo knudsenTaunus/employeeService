@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/janPhil/mySQLHTTPRestGolang/internal/handler/authorization"
+	"github.com/knudsenTaunus/employeeService/internal/handler/authorization"
 	"net/http"
 )
 

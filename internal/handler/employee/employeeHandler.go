@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
+	"github.com/knudsenTaunus/employeeService/internal/types"
 	"net/http"
 )
 

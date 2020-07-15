@@ -3,7 +3,7 @@ package development
 import (
 	"database/sql"
 	"fmt"
-	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
+	"github.com/knudsenTaunus/employeeService/internal/types"
 )
 
 func New() (*sql.DB, error) {
@@ -25,7 +25,6 @@ func New() (*sql.DB, error) {
 	}
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `companycars` (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,`manufacturer` VARCHAR(64), `type` VARCHAR(64), `number_plate` TEXT, employee_number INTEGER, FOREIGN KEY (employee_number) REFERENCES employees(employee_number));")
 	err = insertSampleData(db)
-
 	if err != nil {
 		return nil, err
 	}

@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/janPhil/mySQLHTTPRestGolang/internal/storage/development"
-	"github.com/janPhil/mySQLHTTPRestGolang/internal/storage/production"
+	"github.com/knudsenTaunus/employeeService/internal/storage/development"
+	"github.com/knudsenTaunus/employeeService/internal/storage/production"
 	"log"
 
-	"github.com/janPhil/mySQLHTTPRestGolang/internal/types"
+	"github.com/knudsenTaunus/employeeService/internal/types"
 	_ "github.com/mattn/go-sqlite3"
 )
 
