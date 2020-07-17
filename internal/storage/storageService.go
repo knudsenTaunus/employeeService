@@ -16,8 +16,8 @@ type storage interface {
 	GetCars(id string) ([]*types.EmployeeCars, error)
 }
 
-func New(env *string) storage {
-	if *env == "development" {
+func New(env string) storage {
+	if env == "development" {
 		var err error
 		db, err := development.New()
 		if err != nil {
@@ -25,7 +25,7 @@ func New(env *string) storage {
 		}
 		return db
 	}
-	if *env == "production" {
+	if env == "production" {
 		var err error
 		db, err := production.New()
 		if err != nil {

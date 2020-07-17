@@ -15,16 +15,13 @@ var (
 )
 
 func main() {
-	configuration()
+	flag.StringVar(&environment,"environment", "development", "environment to run the app in")
+	flag.StringVar(&port, "port",":8080", "the port which the server runs on")
 	flag.Parse()
-	db := storage.New(&environment)
+	db := storage.New(environment)
 	router := mux.NewRouter()
 	employeeHandler := employee.New(db)
 	s := server.New(employeeHandler, router)
 	s.StartServer(port)
 }
 
-func configuration() {
-	flag.StringVar(&environment,"environment", "development", "environment to run the app in")
-	flag.StringVar(&port, "port",":8080", "the port which the server runs on")
-}
