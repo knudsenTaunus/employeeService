@@ -7,5 +7,11 @@
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/development.db</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="production" uuid="453b25d0-b1a7-4f4c-ba6d-c7857457168f">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://localhost:3306/employees</jdbc-url>
+    </data-source>
   </component>
 </project>

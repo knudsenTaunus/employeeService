@@ -40,9 +40,9 @@ func New() (*sqliteService, error) {
 
 }
 
-func (ed *sqliteService) FindAllEmployees() ([]*types.Employee, error) {
+func (sqlite *sqliteService) FindAllEmployees() ([]*types.Employee, error) {
 	employees := make([]*types.Employee, 0)
-	rows, err := ed.con.Query("SELECT * FROM employees")
+	rows, err := sqlite.con.Query("SELECT * FROM employees")
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
@@ -62,9 +62,9 @@ func (ed *sqliteService) FindAllEmployees() ([]*types.Employee, error) {
 	return employees, nil
 }
 
-func (ed *sqliteService) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
+func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
 	employees := make([]*types.Employee, 0)
-	rows, err := ed.con.Query("SELECT * FROM employees LIMIT $1", limit)
+	rows, err := sqlite.con.Query("SELECT * FROM employees LIMIT $1", limit)
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
@@ -84,9 +84,9 @@ func (ed *sqliteService) FindAllEmployeesLimit(limit string) ([]*types.Employee,
 	return employees, nil
 }
 
-func (ed *sqliteService) Find(id string) (*types.Employee, error) {
+func (sqlite *sqliteService) Find(id string) (*types.Employee, error) {
 	result := &types.Employee{}
-	row := ed.con.QueryRow("SELECT * FROM employees WHERE id = $1", id)
+	row := sqlite.con.QueryRow("SELECT * FROM employees WHERE id = $1", id)
 	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber); err {
 	case sql.ErrNoRows:
 		return result, err
@@ -94,8 +94,8 @@ func (ed *sqliteService) Find(id string) (*types.Employee, error) {
 	return result, nil
 }
 
-func (ed *sqliteService) Add(e *types.Employee) error {
-	_, err := ed.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES ($1,$2,$3,$4, $5)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber)
+func (sqlite *sqliteService) Add(e *types.Employee) error {
+	_, err := sqlite.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES ($1,$2,$3,$4, $5)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber)
 	if err != nil {
 		return err
 	}
@@ -103,16 +103,16 @@ func (ed *sqliteService) Add(e *types.Employee) error {
 }
 
 
-func (ed *sqliteService) Remove(id string) error {
-	_, err := ed.con.Exec("DELETE FROM employees WHERE id = $1",id)
+func (sqlite *sqliteService) Remove(id string) error {
+	_, err := sqlite.con.Exec("DELETE FROM employees WHERE id = $1",id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ed *sqliteService) GetCars(id string) ([]*types.EmployeeCars, error) {
-	rows, err := ed.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
+func (sqlite *sqliteService) GetCars(id string) ([]*types.EmployeeCars, error) {
+	rows, err := sqlite.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
 	if err != nil {
 		return nil, err
 	}
