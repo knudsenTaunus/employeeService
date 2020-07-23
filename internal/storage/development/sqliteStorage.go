@@ -3,17 +3,19 @@ package development
 import (
 	"database/sql"
 	"fmt"
+	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/types"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"time"
 )
 
 type sqliteService struct {
 	con *sql.DB
 }
 
-func New() (*sqliteService, error) {
-	db, err := sql.Open("sqlite3", "../development.db")
+func New(config *config.Config) (*sqliteService, error) {
+	db, err := sql.Open("sqlite3", config.Sqlitedatabase.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +39,6 @@ func New() (*sqliteService, error) {
 	return &sqliteService{
 		con: db,
 	}, nil
-
 }
 
 func (sqlite *sqliteService) FindAllEmployees() ([]*types.Employee, error) {
@@ -140,32 +141,42 @@ func insertSampleData(db *sql.DB) error {
 			FirstName: "Joe",
 			LastName:  "Biehl",
 			Salary:    50000,
-			Birthday: "14.07.1988",
+			Birthday: types.JsonDate{
+				Time: time.Now(),
+			},
 			EmployeeNumber: 1,
 		},
 		{
 			FirstName: "Jan",
 			LastName:  "Heinrich",
 			Salary:    500000,
-			Birthday: "24.02.1984",
+			Birthday: types.JsonDate{
+				Time: time.Now().AddDate(0,0,1),
+			},
 			EmployeeNumber: 2,
 		},{
 			FirstName: "Rusalka",
 			LastName:  "Ertel",
 			Salary:    250000,
-			Birthday: "06.03.1988",
+			Birthday: types.JsonDate{
+				Time: time.Now().AddDate(0,0,2),
+			},
 			EmployeeNumber: 3,
 		},{
 			FirstName: "Tauseef",
 			LastName:  "Al-Noor",
 			Salary:    70000,
-			Birthday: "30.08.1988",
+			Birthday: types.JsonDate{
+				Time: time.Now().AddDate(0,0,3),
+			},
 			EmployeeNumber: 4,
 		},{
 			FirstName: "Lotte",
 			LastName:  "Kwandt",
 			Salary:    5000000,
-			Birthday: "26.07.1988",
+			Birthday: types.JsonDate{
+				Time: time.Now().AddDate(0,0,4),
+			},
 			EmployeeNumber: 5,
 		},
 	}

@@ -2,7 +2,7 @@ package employee
 
 import (
 	"bytes"
-	"github.com/knudsenTaunus/employeeService/internal/storage"
+	"github.com/knudsenTaunus/employeeService/internal/storage/development"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +14,7 @@ func TestHandler_Add(t *testing.T) {
 	req, err := http.NewRequest("POST", "/employee", bytes.NewBuffer(requestBody))
 	assert.NoError(t, err)
 
-	testDb, err := storage.New()
+	testDb, err := development.New()
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()

@@ -3,6 +3,7 @@ package production
 import (
 	"database/sql"
 	"fmt"
+	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/types"
 	"log"
 )
@@ -10,25 +11,25 @@ import (
 const (
 	user     = "root"
 	password = "employeedatabase"
-	address  = "127.0.0.1"
+	host  = "127.0.0.1"
 	port     = "3306"
 	table    = "employees"
 )
 
-type mySQLervice struct {
+type mySQLService struct {
 	con *sql.DB
 }
 
-func New() (*mySQLervice, error) {
-	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, address, port, table)
+func New(config *config.Config) (*mySQLService, error) {
+	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", config.Mysqldatabase.User, config.Mysqldatabase.Password, config.Mysqldatabase.Host, config.Mysqldatabase.Port, "employees")
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		return nil, err
 	}
-	return &mySQLervice{con: db}, nil
+	return &mySQLService{con: db}, nil
 }
 
-func (mysql *mySQLervice) FindAllEmployees() ([]*types.Employee, error) {
+func (mysql *mySQLService) FindAllEmployees() ([]*types.Employee, error) {
 	employees := make([]*types.Employee, 0)
 	rows, err := mysql.con.Query("SELECT * FROM employees")
 	defer rows.Close()
@@ -37,7 +38,7 @@ func (mysql *mySQLervice) FindAllEmployees() ([]*types.Employee, error) {
 	}
 	for rows.Next() {
 		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -49,7 +50,7 @@ func (mysql *mySQLervice) FindAllEmployees() ([]*types.Employee, error) {
 	}
 	return employees, nil
 }
-func (mysql *mySQLervice) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
+func (mysql *mySQLService) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
 	employees := make([]*types.Employee, 0)
 	rows, err := mysql.con.Query("SELECT * FROM employees LIMIT ?", limit)
 	defer rows.Close()
@@ -58,7 +59,7 @@ func (mysql *mySQLervice) FindAllEmployeesLimit(limit string) ([]*types.Employee
 	}
 	for rows.Next() {
 		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -70,30 +71,30 @@ func (mysql *mySQLervice) FindAllEmployeesLimit(limit string) ([]*types.Employee
 	}
 	return employees, nil
 }
-func (mysql *mySQLervice) Find(id string) (*types.Employee, error) {
+func (mysql *mySQLService) Find(id string) (*types.Employee, error) {
 	result := &types.Employee{}
 	row := mysql.con.QueryRow("SELECT * FROM employees WHERE id = ?", id)
-	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber); err {
+	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
 	case sql.ErrNoRows:
 		return result, err
 	}
 	return result, nil
 }
-func (mysql *mySQLervice) Add(e *types.Employee) error {
-	_, err := mysql.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES (?,?,?,?,?)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber)
+func (mysql *mySQLService) Add(e *types.Employee) error {
+	_, err := mysql.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?)", e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber, e.EntryDate.Time)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (mysql *mySQLervice) Remove(id string) error {
+func (mysql *mySQLService) Remove(id string) error {
 	_, err := mysql.con.Exec("DELETE FROM employees WHERE id = ?",id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (mysql *mySQLervice) GetCars(id string) ([]*types.EmployeeCars, error) {
+func (mysql *mySQLService) GetCars(id string) ([]*types.EmployeeCars, error) {
 	rows, err := mysql.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = ?", id)
 	if err != nil {
 		return nil, err

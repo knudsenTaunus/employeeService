@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-type database interface {
+type Storage interface {
 	FindAllEmployees() ([]*types.Employee, error)
 	FindAllEmployeesLimit(limit string) ([]*types.Employee, error)
 	Find(id string) (*types.Employee, error)
@@ -18,10 +18,10 @@ type database interface {
 }
 
 type handler struct {
-	Database database
+	Database Storage
 }
 
-func New(db database) *handler {
+func New(db Storage) *handler {
 	return &handler{
 		Database: db,
 	}
@@ -49,6 +49,9 @@ func (h *handler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		employee := &types.Employee{}
 		err := employee.FromJSON(r.Body)
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+		}
 		err = h.Database.Add(employee)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)

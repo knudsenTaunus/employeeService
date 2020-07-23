@@ -8,4 +8,5 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
 	github.com/stretchr/testify v1.6.1
 	google.golang.org/appengine v1.6.6 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 )

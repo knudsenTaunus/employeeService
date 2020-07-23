@@ -1,27 +1,45 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/handler/employee"
 	"github.com/knudsenTaunus/employeeService/internal/server"
-	"github.com/knudsenTaunus/employeeService/internal/storage"
-)
-
-var (
-	environment string
-	port string
+	"github.com/knudsenTaunus/employeeService/internal/storage/development"
+	"github.com/knudsenTaunus/employeeService/internal/storage/production"
+	"log"
 )
 
 func main() {
-	flag.StringVar(&environment,"environment", "development", "environment to run the app in")
-	flag.StringVar(&port, "port",":8080", "the port which the server runs on")
-	flag.Parse()
-	db := storage.New(environment)
+
+	employeeConfig, err := config.NewConfig("./config.yml")
+	if err != nil {
+		log.Fatalf("failed to configure service: %s", err)
+	}
+	
+	var db employee.Storage
+	
+	switch employeeConfig.Environment {
+	case "development":
+		var err error
+		db, err = development.New(employeeConfig)
+		if err != nil {
+			log.Fatal("failed to create development database")
+		}
+	case "production":
+		var err error
+		db, err = production.New(employeeConfig)
+		if err != nil {
+			log.Fatal("failed to create development database")
+		}
+	}
+
 	router := mux.NewRouter()
 	employeeHandler := employee.New(db)
 	s := server.New(employeeHandler, router)
-	s.StartServer(port)
+	address := fmt.Sprintf("%s:%s", employeeConfig.Server.Host, employeeConfig.Server.Port)
+	s.StartServer(address)
 }
 

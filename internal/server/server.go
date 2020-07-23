@@ -34,7 +34,7 @@ func New(h handler, r *mux.Router) *server {
 }
 
 // StartServer starts the new created server
-func (s *server) StartServer(port string) {
+func (s *server) StartServer(address string) {
 	fmt.Println("server started")
 	getRouter := s.router.Methods(http.MethodGet).Subrouter()
 	getRouter.Handle("/employees", s.employeeHandler.GetAll())
@@ -49,7 +49,7 @@ func (s *server) StartServer(port string) {
 	deleteRouter.Handle("/employees/{id}", s.employeeHandler.Remove())
 
 
-	err := http.ListenAndServe(port, s.router)
+	err := http.ListenAndServe(address, s.router)
 	if err != nil {
 
 	}
