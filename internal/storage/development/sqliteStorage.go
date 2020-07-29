@@ -27,7 +27,7 @@ func New(config *config.Config) (*sqliteService, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `employees` (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,`first_name` VARCHAR(64), `last_name` VARCHAR(64), `salary` INTEGER, `birthday` TEXT, employee_number INTEGER UNIQUE);")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS `employees` (`id` INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE ,`first_name` VARCHAR(64), `last_name` VARCHAR(64), `salary` INTEGER, `birthday` datetime, employee_number INTEGER UNIQUE, entry_date datetime);")
 	if err != nil {
 		return nil, err
 	}
@@ -41,16 +41,16 @@ func New(config *config.Config) (*sqliteService, error) {
 	}, nil
 }
 
-func (sqlite *sqliteService) FindAllEmployees() ([]*types.Employee, error) {
-	employees := make([]*types.Employee, 0)
+func (sqlite *sqliteService) FindAllEmployees() ([]*types.StorageEmployee, error) {
+	employees := make([]*types.StorageEmployee, 0)
 	rows, err := sqlite.con.Query("SELECT * FROM employees")
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber)
+		tmp := new(types.StorageEmployee)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -63,16 +63,16 @@ func (sqlite *sqliteService) FindAllEmployees() ([]*types.Employee, error) {
 	return employees, nil
 }
 
-func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
-	employees := make([]*types.Employee, 0)
+func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) ([]*types.StorageEmployee, error) {
+	employees := make([]*types.StorageEmployee, 0)
 	rows, err := sqlite.con.Query("SELECT * FROM employees LIMIT $1", limit)
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber)
+		tmp := new(types.StorageEmployee)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -85,18 +85,18 @@ func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) ([]*types.Emplo
 	return employees, nil
 }
 
-func (sqlite *sqliteService) Find(id string) (*types.Employee, error) {
-	result := &types.Employee{}
-	row := sqlite.con.QueryRow("SELECT * FROM employees WHERE id = $1", id)
-	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber); err {
+func (sqlite *sqliteService) Find(id string) (*types.StorageEmployee, error) {
+	result := &types.StorageEmployee{}
+	row := sqlite.con.QueryRow("SELECT * FROM employees WHERE employee_number = $1", id)
+	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
 	case sql.ErrNoRows:
 		return result, err
 	}
 	return result, nil
 }
 
-func (sqlite *sqliteService) Add(e *types.Employee) error {
-	_, err := sqlite.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES ($1,$2,$3,$4, $5)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber)
+func (sqlite *sqliteService) Add(e *types.StorageEmployee) error {
+	_, err := sqlite.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday.String(), e.EmployeeNumber, e.EntryDate.String())
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (sqlite *sqliteService) Add(e *types.Employee) error {
 
 
 func (sqlite *sqliteService) Remove(id string) error {
-	_, err := sqlite.con.Exec("DELETE FROM employees WHERE id = $1",id)
+	_, err := sqlite.con.Exec("DELETE FROM employees WHERE employee_number = $1",id)
 	if err != nil {
 		return err
 	}
@@ -136,47 +136,37 @@ func (sqlite *sqliteService) GetCars(id string) ([]*types.EmployeeCars, error) {
 
 
 func insertSampleData(db *sql.DB) error {
-	employees := []*types.Employee{
+	employees := []*types.StorageEmployee{
 		{
 			FirstName: "Joe",
 			LastName:  "Biehl",
 			Salary:    50000,
-			Birthday: types.JsonDate{
-				Time: time.Now(),
-			},
+			Birthday: time.Now(),
 			EmployeeNumber: 1,
 		},
 		{
 			FirstName: "Jan",
 			LastName:  "Heinrich",
 			Salary:    500000,
-			Birthday: types.JsonDate{
-				Time: time.Now().AddDate(0,0,1),
-			},
+			Birthday: time.Now(),
 			EmployeeNumber: 2,
 		},{
 			FirstName: "Rusalka",
 			LastName:  "Ertel",
 			Salary:    250000,
-			Birthday: types.JsonDate{
-				Time: time.Now().AddDate(0,0,2),
-			},
+			Birthday: time.Now(),
 			EmployeeNumber: 3,
 		},{
 			FirstName: "Tauseef",
 			LastName:  "Al-Noor",
 			Salary:    70000,
-			Birthday: types.JsonDate{
-				Time: time.Now().AddDate(0,0,3),
-			},
+			Birthday: time.Now(),
 			EmployeeNumber: 4,
 		},{
 			FirstName: "Lotte",
 			LastName:  "Kwandt",
 			Salary:    5000000,
-			Birthday: types.JsonDate{
-				Time: time.Now().AddDate(0,0,4),
-			},
+			Birthday: time.Now(),
 			EmployeeNumber: 5,
 		},
 	}
@@ -197,8 +187,8 @@ func insertSampleData(db *sql.DB) error {
 	}
 
 	for _, item := range employees {
-		stmt := "INSERT OR IGNORE INTO employees (first_name, last_name, salary, birthday, employee_number) VALUES (?, ?, ?, ?, ?)"
-		_, err := db.Exec(stmt, item.FirstName, item.LastName, item.Salary, item.Birthday, item.EmployeeNumber)
+		stmt := "INSERT OR IGNORE INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?, ?, ?, ?, ?, ?)"
+		_, err := db.Exec(stmt, item.FirstName, item.LastName, item.Salary, item.Birthday, item.EmployeeNumber, item.EntryDate)
 		if err != nil {
 			fmt.Print(err)
 		}

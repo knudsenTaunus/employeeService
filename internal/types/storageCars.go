@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// Employee is the struct used for response
+// StorageEmployee is the struct used for response
 type Car struct {
 	ID        int `json:"id"`
 	Manufacturer string `json:"manufacturer"`

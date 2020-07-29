@@ -9,10 +9,10 @@ import (
 )
 
 type Storage interface {
-	FindAllEmployees() ([]*types.Employee, error)
-	FindAllEmployeesLimit(limit string) ([]*types.Employee, error)
-	Find(id string) (*types.Employee, error)
-	Add(employee *types.Employee) error
+	FindAllEmployees() ([]*types.StorageEmployee, error)
+	FindAllEmployeesLimit(limit string) ([]*types.StorageEmployee, error)
+	Find(id string) (*types.StorageEmployee, error)
+	Add(employee *types.StorageEmployee) error
 	Remove(id string) error
 	GetCars(id string) ([]*types.EmployeeCars, error)
 }
@@ -29,8 +29,8 @@ func New(db Storage) *handler {
 
 func (h *handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-		employee, err := h.Database.Find(id)
+		employee_number := mux.Vars(r)["employee_number"]
+		employee, err := h.Database.Find(employee_number)
 		if err != nil {
 			fmt.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -38,7 +38,7 @@ func (h *handler) Get() http.HandlerFunc {
 		if err != nil {
 			http.Error(w, http.StatusText(404), 404)
 		}
-		err = json.NewEncoder(w).Encode(employee)
+		err = json.NewEncoder(w).Encode(employee.ToHandlerEmployee())
 		if err != nil {
 			http.Error(w, http.StatusText(404), 404)
 		}
@@ -47,12 +47,12 @@ func (h *handler) Get() http.HandlerFunc {
 
 func (h *handler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		employee := &types.Employee{}
+		employee := &types.HandlerEmployee{}
 		err := employee.FromJSON(r.Body)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 		}
-		err = h.Database.Add(employee)
+		err = h.Database.Add(employee.ToStorageEmployee())
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 		}
@@ -61,8 +61,8 @@ func (h *handler) Add() http.HandlerFunc {
 
 func (h *handler) Remove() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-		err := h.Database.Remove(id)
+		employee_number := mux.Vars(r)["employee_number"]
+		err := h.Database.Remove(employee_number)
 		if err != nil {
 			http.Error(w, http.StatusText(501), 501)
 		}

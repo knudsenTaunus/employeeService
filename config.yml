@@ -13,4 +13,4 @@ mysqldatabase:
 sqlitedatabase:
   path: ../development.db
 
-environment: production
+environment: development

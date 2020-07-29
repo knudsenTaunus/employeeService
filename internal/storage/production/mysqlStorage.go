@@ -29,16 +29,16 @@ func New(config *config.Config) (*mySQLService, error) {
 	return &mySQLService{con: db}, nil
 }
 
-func (mysql *mySQLService) FindAllEmployees() ([]*types.Employee, error) {
-	employees := make([]*types.Employee, 0)
+func (mysql *mySQLService) FindAllEmployees() ([]*types.StorageEmployee, error) {
+	employees := make([]*types.StorageEmployee, 0)
 	rows, err := mysql.con.Query("SELECT * FROM employees")
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
+		tmp := new(types.StorageEmployee)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -50,16 +50,16 @@ func (mysql *mySQLService) FindAllEmployees() ([]*types.Employee, error) {
 	}
 	return employees, nil
 }
-func (mysql *mySQLService) FindAllEmployeesLimit(limit string) ([]*types.Employee, error) {
-	employees := make([]*types.Employee, 0)
+func (mysql *mySQLService) FindAllEmployeesLimit(limit string) ([]*types.StorageEmployee, error) {
+	employees := make([]*types.StorageEmployee, 0)
 	rows, err := mysql.con.Query("SELECT * FROM employees LIMIT ?", limit)
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := new(types.Employee)
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
+		tmp := new(types.StorageEmployee)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -71,31 +71,31 @@ func (mysql *mySQLService) FindAllEmployeesLimit(limit string) ([]*types.Employe
 	}
 	return employees, nil
 }
-func (mysql *mySQLService) Find(id string) (*types.Employee, error) {
-	result := &types.Employee{}
-	row := mysql.con.QueryRow("SELECT * FROM employees WHERE id = ?", id)
+func (mysql *mySQLService) Find(id string) (*types.StorageEmployee, error) {
+	result := &types.StorageEmployee{}
+	row := mysql.con.QueryRow("SELECT * FROM employees WHERE employee_number = ?", id)
 	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
 	case sql.ErrNoRows:
 		return result, err
 	}
 	return result, nil
 }
-func (mysql *mySQLService) Add(e *types.Employee) error {
-	_, err := mysql.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?)", e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber, e.EntryDate.Time)
+func (mysql *mySQLService) Add(e *types.StorageEmployee) error {
+	_, err := mysql.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (mysql *mySQLService) Remove(id string) error {
-	_, err := mysql.con.Exec("DELETE FROM employees WHERE id = ?",id)
+	_, err := mysql.con.Exec("DELETE FROM employees WHERE employee_number = ?",id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (mysql *mySQLService) GetCars(id string) ([]*types.EmployeeCars, error) {
-	rows, err := mysql.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = ?", id)
+	rows, err := mysql.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.employee_number = ?", id)
 	if err != nil {
 		return nil, err
 	}
