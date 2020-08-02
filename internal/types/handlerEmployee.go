@@ -2,7 +2,9 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -53,4 +55,14 @@ func (e *HandlerEmployee) FromJSON(r io.Reader) error {
 func (e *HandlerEmployee) ToJSON(r io.Writer) error {
 	d := json.NewEncoder(r)
 	return d.Encode(e)
+}
+
+func (e *HandlerEmployee) Validate() error {
+	//validate Birthday and EntryDate
+	dateRegex := regexp.MustCompile("[0-9]{4}-[0-9]{2}-[0-9]{2}")
+	result := dateRegex.FindString(e.EntryDate.Time.String())
+	if result == "" {
+		return errors.New("No valid date")
+	}
+	return nil
 }

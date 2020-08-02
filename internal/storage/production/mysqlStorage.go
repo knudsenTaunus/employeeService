@@ -6,6 +6,7 @@ import (
 	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/types"
 	"log"
+	"strconv"
 )
 
 const (
@@ -29,7 +30,7 @@ func New(config *config.Config) (*mySQLService, error) {
 	return &mySQLService{con: db}, nil
 }
 
-func (mysql *mySQLService) FindAllEmployees() ([]*types.StorageEmployee, error) {
+func (mysql *mySQLService) FindAllEmployees() (types.StorageEmployees, error) {
 	employees := make([]*types.StorageEmployee, 0)
 	rows, err := mysql.con.Query("SELECT * FROM employees")
 	defer rows.Close()
@@ -50,13 +51,17 @@ func (mysql *mySQLService) FindAllEmployees() ([]*types.StorageEmployee, error) 
 	}
 	return employees, nil
 }
-func (mysql *mySQLService) FindAllEmployeesLimit(limit string) ([]*types.StorageEmployee, error) {
-	employees := make([]*types.StorageEmployee, 0)
+func (mysql *mySQLService) FindAllEmployeesLimit(limit string) (types.StorageEmployees, error) {
+	l, err := strconv.Atoi(limit)
+	if err != nil {
+		return nil, err
+	}
+	employees := make([]*types.StorageEmployee, l)
 	rows, err := mysql.con.Query("SELECT * FROM employees LIMIT ?", limit)
-	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		tmp := new(types.StorageEmployee)
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)

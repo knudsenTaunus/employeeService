@@ -2,6 +2,7 @@ package employee
 
 import (
 	"bytes"
+	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/storage/development"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -14,7 +15,14 @@ func TestHandler_Add(t *testing.T) {
 	req, err := http.NewRequest("POST", "/employee", bytes.NewBuffer(requestBody))
 	assert.NoError(t, err)
 
-	testDb, err := development.New()
+	testConfig := &config.Config{
+		Sqlitedatabase: struct {
+			Path string `yaml:"path"`
+		}{Path: "../development.db"},
+		Environment: "development",
+	}
+
+	testDb, err := development.New(testConfig)
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()

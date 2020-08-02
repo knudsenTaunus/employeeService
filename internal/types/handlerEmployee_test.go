@@ -7,8 +7,7 @@ import (
 )
 
 func TestEmployee_Validate(t *testing.T) {
-	testEmployee := &StorageEmployee{
-		ID:             1,
+	testEmployee := &HandlerEmployee{
 		FirstName:      "Max",
 		LastName:       "Mustermann",
 		Salary:         80000,
