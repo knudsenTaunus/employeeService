@@ -1,10 +1,15 @@
 package server
 
 import (
-	"fmt"
+	"context"
 	"github.com/gorilla/mux"
 	"github.com/knudsenTaunus/employeeService/internal/handler/authorization"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type handler interface {
@@ -15,27 +20,22 @@ type handler interface {
 	GetCars() http.HandlerFunc
 }
 
-// server is a struct which contains all dependencies for this microservice
-type server struct {
+// employeeServer is a struct which contains all dependencies for this microservice
+type employeeServer struct {
 	employeeHandler handler
 	router          *mux.Router
 }
 
-// New returns an instance of the server with all dependencies.
+// New returns an instance of the employeeServer with all dependencies.
 // The served routes can be found in the routes.go file
-func New(h handler, r *mux.Router) *server {
-	s := &server{
+func New(h handler, r *mux.Router) *employeeServer {
+	return &employeeServer{
 		employeeHandler: h,
 		router: r,
 	}
-	fmt.Println("server created")
-
-	return s
 }
 
-// StartServer starts the new created server
-func (s *server) StartServer(address string) {
-	fmt.Println("server started")
+func (s * employeeServer) SetRoutes() *employeeServer {
 	getRouter := s.router.Methods(http.MethodGet).Subrouter()
 	getRouter.Handle("/employees", s.employeeHandler.GetAll())
 	getRouter.Handle("/employees", s.employeeHandler.GetAll()).Queries("limit", "{limit}")
@@ -47,17 +47,37 @@ func (s *server) StartServer(address string) {
 
 	deleteRouter := s.router.Methods(http.MethodDelete).Subrouter()
 	deleteRouter.Handle("/employees/{id}", s.employeeHandler.Remove())
-
-
-	err := http.ListenAndServe(address, s.router)
-	if err != nil {
-
-	}
-	defer s.StopServer()
+	return s
 }
 
-// StopServer stops the server and closes the connection to the storage
-func (s *server) StopServer() {
-	fmt.Println("Shutting down server...")
-	fmt.Println("closing storage...")
+// StartServer creates an http.Server and a channel where it waits for SIGINT or SIGTERM.
+func (s *employeeServer) StartServer(address string) {
+	srv := &http.Server{
+		Addr:              address,
+		Handler:           s.router,
+	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("listen: %s\n", err)
+		}
+	}()
+
+	log.Printf("Server started")
+	<- done
+	log.Printf("Server stopped")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		// extra handling here
+		cancel()
+	}()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server Shutdown Failed:%+v", err)
+	}
+	log.Print("Server Exited Properly")
 }

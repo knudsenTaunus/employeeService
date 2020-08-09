@@ -38,8 +38,7 @@ func main() {
 
 	router := mux.NewRouter()
 	employeeHandler := employee.New(db)
-	s := server.New(employeeHandler, router)
 	address := fmt.Sprintf("%s:%s", employeeConfig.Server.Host, employeeConfig.Server.Port)
+	s := server.New(employeeHandler, router).SetRoutes()
 	s.StartServer(address)
 }
-
