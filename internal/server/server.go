@@ -30,7 +30,7 @@ func New(eh http.Handler, ch http.Handler, r *mux.Router) *employeeServer {
 }
 
 func (s *employeeServer) SetRoutes() *employeeServer {
-	s.router.Handle("/employee", s.employeeHandler)
+	s.router.Handle("/employee", s.employeeHandler).Methods(http.MethodPost, http.MethodDelete)
 	s.router.Handle("/employees", s.employeeHandler).Methods(http.MethodGet)
 	s.router.Handle("/employees/{id}", s.employeeHandler).Methods(http.MethodGet)
 

@@ -26,9 +26,11 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		employeeNumber := mux.Vars(r)["id"]
 		if employeeNumber != "" {
 			h.Get(employeeNumber, w)
+			return
 		}
 
 		h.GetAll(w, r)
+		return
 	case http.MethodPost:
 		h.Add(w, r)
 		return
