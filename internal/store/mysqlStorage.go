@@ -1,4 +1,4 @@
-package production
+package store
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ import (
 const (
 	user     = "root"
 	password = "employeedatabase"
-	host  = "127.0.0.1"
+	host     = "127.0.0.1"
 	port     = "3306"
 	table    = "employees"
 )
@@ -21,7 +21,7 @@ type mySQLService struct {
 	con *sql.DB
 }
 
-func New(config *config.Config) (*mySQLService, error) {
+func NewMySQL(config *config.Config) (*mySQLService, error) {
 	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", config.Mysqldatabase.User, config.Mysqldatabase.Password, config.Mysqldatabase.Host, config.Mysqldatabase.Port, "employees")
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
@@ -93,7 +93,7 @@ func (mysql *mySQLService) Add(e *types.StorageEmployee) error {
 	return nil
 }
 func (mysql *mySQLService) Remove(id string) error {
-	_, err := mysql.con.Exec("DELETE FROM employees WHERE employee_number = ?",id)
+	_, err := mysql.con.Exec("DELETE FROM employees WHERE employee_number = ?", id)
 	if err != nil {
 		return err
 	}

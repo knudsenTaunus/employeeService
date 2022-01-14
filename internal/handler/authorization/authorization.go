@@ -5,18 +5,18 @@ import (
 	"strings"
 )
 
-func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
+func ValidateMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authorizationHeader := req.Header.Get("authorization")
 		if authorizationHeader != "" {
 			bearerToken := strings.Split(authorizationHeader, " ")
 			if bearerToken[0] != "foo" || bearerToken[1] != "bar" {
-				http.Error(w, http.StatusText(403),403)
+				http.Error(w, http.StatusText(403), 403)
 				return
 			}
-			next(w,req)
+			next.ServeHTTP(w, req)
 		} else {
-			http.Error(w, http.StatusText(401),401)
+			http.Error(w, http.StatusText(401), 401)
 		}
-	}
+	})
 }

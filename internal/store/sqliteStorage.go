@@ -1,4 +1,4 @@
-package development
+package store
 
 import (
 	"database/sql"
@@ -15,7 +15,7 @@ type sqliteService struct {
 	con *sql.DB
 }
 
-func New(config *config.Config) (*sqliteService, error) {
+func NewSQLite(config *config.Config) (*sqliteService, error) {
 	db, err := sql.Open("sqlite3", config.Sqlitedatabase.Path)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,6 @@ func (sqlite *sqliteService) Add(e *types.StorageEmployee) error {
 	return nil
 }
 
-
 func (sqlite *sqliteService) Remove(employee_number string) error {
 	_, err := sqlite.con.Exec("DELETE FROM employees WHERE employee_number = $1", employee_number)
 	if err != nil {
@@ -139,7 +138,6 @@ func (sqlite *sqliteService) GetCars(id string) ([]*types.EmployeeCars, error) {
 	return cars, nil
 }
 
-
 func insertSampleData(db *sql.DB) error {
 	today, err := time.Parse("2006-01-02", time.Now().Format("2006-01-02"))
 	if err != nil {
@@ -147,41 +145,41 @@ func insertSampleData(db *sql.DB) error {
 	}
 	employees := []*types.StorageEmployee{
 		{
-			FirstName: "Joe",
-			LastName:  "Biehl",
-			Salary:    50000,
-			Birthday: time.Date(1986, 1, 18,0,0,0,0,time.UTC),
+			FirstName:      "Joe",
+			LastName:       "Biehl",
+			Salary:         50000,
+			Birthday:       time.Date(1986, 1, 18, 0, 0, 0, 0, time.UTC),
 			EmployeeNumber: 1,
-			EntryDate: today,
+			EntryDate:      today,
 		},
 		{
-			FirstName: "Jan",
-			LastName:  "Heinrich",
-			Salary:    500000,
-			Birthday: time.Date(1984, 2, 24,0,0,0,0,time.UTC),
+			FirstName:      "Jan",
+			LastName:       "Heinrich",
+			Salary:         500000,
+			Birthday:       time.Date(1984, 2, 24, 0, 0, 0, 0, time.UTC),
 			EmployeeNumber: 2,
-			EntryDate: today,
-		},{
-			FirstName: "Rusalka",
-			LastName:  "Ertel",
-			Salary:    250000,
-			Birthday: time.Date(1988, 3, 10,0,0,0,0,time.UTC),
+			EntryDate:      today,
+		}, {
+			FirstName:      "Rusalka",
+			LastName:       "Ertel",
+			Salary:         250000,
+			Birthday:       time.Date(1988, 3, 10, 0, 0, 0, 0, time.UTC),
 			EmployeeNumber: 3,
-			EntryDate: today,
-		},{
-			FirstName: "Tauseef",
-			LastName:  "Al-Noor",
-			Salary:    70000,
-			Birthday: time.Date(1987, 11, 2,0,0,0,0,time.UTC),
+			EntryDate:      today,
+		}, {
+			FirstName:      "Tauseef",
+			LastName:       "Al-Noor",
+			Salary:         70000,
+			Birthday:       time.Date(1987, 11, 2, 0, 0, 0, 0, time.UTC),
 			EmployeeNumber: 4,
-			EntryDate: today,
-		},{
-			FirstName: "Lotte",
-			LastName:  "Kwandt",
-			Salary:    5000000,
-			Birthday: time.Date(1988, 7, 27,0,0,0,0,time.UTC),
+			EntryDate:      today,
+		}, {
+			FirstName:      "Lotte",
+			LastName:       "Kwandt",
+			Salary:         5000000,
+			Birthday:       time.Date(1988, 7, 27, 0, 0, 0, 0, time.UTC),
 			EmployeeNumber: 5,
-			EntryDate: today,
+			EntryDate:      today,
 		},
 	}
 

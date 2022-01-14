@@ -3,7 +3,7 @@ package employee
 import (
 	"bytes"
 	"github.com/knudsenTaunus/employeeService/internal/config"
-	"github.com/knudsenTaunus/employeeService/internal/storage/development"
+	"github.com/knudsenTaunus/employeeService/internal/store"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -22,12 +22,12 @@ func TestHandler_Add(t *testing.T) {
 		Environment: "development",
 	}
 
-	testDb, err := development.New(testConfig)
+	testDb, err := store.NewSQLite(testConfig)
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := New(testDb)
+	handler := NewHandler(testDb)
 
-	handler.Add().ServeHTTP(rr, req)
+	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 200, rr.Code)
 }
