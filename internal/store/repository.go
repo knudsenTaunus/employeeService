@@ -6,8 +6,8 @@ type Database interface {
 	GetCars(id string) ([]*types.EmployeeCars, error)
 	FindAllEmployees() (types.StorageEmployees, error)
 	FindAllEmployeesLimit(limit string) (types.StorageEmployees, error)
-	Find(id string) (*types.StorageEmployee, error)
-	Add(employee *types.StorageEmployee) error
+	Find(id string) (types.StorageEmployee, error)
+	Add(employee types.StorageEmployee) error
 	Remove(id string) error
 }
 
@@ -31,11 +31,11 @@ func (r Repository) FindAllEmployeesLimit(limit string) (types.StorageEmployees,
 	return r.DB.FindAllEmployeesLimit(limit)
 }
 
-func (r Repository) Find(id string) (*types.StorageEmployee, error) {
+func (r Repository) Find(id string) (types.StorageEmployee, error) {
 	return r.DB.Find(id)
 }
 
-func (r Repository) Add(employee *types.StorageEmployee) error {
+func (r Repository) Add(employee types.StorageEmployee) error {
 	return r.DB.Add(employee)
 }
 

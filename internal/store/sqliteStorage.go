@@ -3,12 +3,13 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"github.com/knudsenTaunus/employeeService/internal/config"
-	"github.com/knudsenTaunus/employeeService/internal/types"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/knudsenTaunus/employeeService/internal/config"
+	"github.com/knudsenTaunus/employeeService/internal/types"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type sqliteService struct {
@@ -90,8 +91,8 @@ func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) (types.StorageE
 	return employees, nil
 }
 
-func (sqlite *sqliteService) Find(id string) (*types.StorageEmployee, error) {
-	result := &types.StorageEmployee{}
+func (sqlite *sqliteService) Find(id string) (types.StorageEmployee, error) {
+	result := types.StorageEmployee{}
 	row := sqlite.con.QueryRow("SELECT * FROM employees WHERE employee_number = $1", id)
 	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
 	case sql.ErrNoRows:
@@ -100,8 +101,8 @@ func (sqlite *sqliteService) Find(id string) (*types.StorageEmployee, error) {
 	return result, nil
 }
 
-func (sqlite *sqliteService) Add(e *types.StorageEmployee) error {
-	_, err := sqlite.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday.String(), e.EmployeeNumber, e.EntryDate.String())
+func (sqlite *sqliteService) Add(e types.StorageEmployee) error {
+	_, err := sqlite.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
 	if err != nil {
 		return err
 	}

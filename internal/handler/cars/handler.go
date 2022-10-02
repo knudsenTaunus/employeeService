@@ -8,14 +8,14 @@ import (
 )
 
 type Repository interface {
-	GetCars(id string) ([]*types.EmployeeCars, error)
+	GetCars(id string) ([]types.EmployeeCars, error)
 }
 
-type handler struct {
+type Handler struct {
 	Database Repository
 }
 
-func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		employeeNumber := mux.Vars(r)["id"]
@@ -25,13 +25,13 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewHandler(db Repository) *handler {
-	return &handler{
+func NewHandler(db Repository) Handler {
+	return Handler{
 		Database: db,
 	}
 }
 
-func (h *handler) Get(id string, w http.ResponseWriter) {
+func (h Handler) Get(id string, w http.ResponseWriter) {
 	cars, err := h.Database.GetCars(id)
 	if err != nil {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)

@@ -41,6 +41,7 @@ func main() {
 	employeeHandler := employee.NewHandler(repository)
 	carsHandler := cars.NewHandler(repository)
 	address := fmt.Sprintf("%s:%s", employeeConfig.Server.Host, employeeConfig.Server.Port)
-	s := server.New(employeeHandler, carsHandler, router).SetRoutes()
+	s := server.New(employeeHandler, carsHandler, router)
+	s.SetRoutes()
 	s.StartServer(address)
 }

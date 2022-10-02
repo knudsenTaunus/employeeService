@@ -3,10 +3,11 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"github.com/knudsenTaunus/employeeService/internal/config"
-	"github.com/knudsenTaunus/employeeService/internal/types"
 	"log"
 	"strconv"
+
+	"github.com/knudsenTaunus/employeeService/internal/config"
+	"github.com/knudsenTaunus/employeeService/internal/types"
 )
 
 const (
@@ -76,8 +77,8 @@ func (mysql *mySQLService) FindAllEmployeesLimit(limit string) (types.StorageEmp
 	}
 	return employees, nil
 }
-func (mysql *mySQLService) Find(id string) (*types.StorageEmployee, error) {
-	result := &types.StorageEmployee{}
+func (mysql *mySQLService) Find(id string) (types.StorageEmployee, error) {
+	result := types.StorageEmployee{}
 	row := mysql.con.QueryRow("SELECT * FROM employees WHERE employee_number = ?", id)
 	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
 	case sql.ErrNoRows:
@@ -85,7 +86,7 @@ func (mysql *mySQLService) Find(id string) (*types.StorageEmployee, error) {
 	}
 	return result, nil
 }
-func (mysql *mySQLService) Add(e *types.StorageEmployee) error {
+func (mysql *mySQLService) Add(e types.StorageEmployee) error {
 	_, err := mysql.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
 	if err != nil {
 		return err
@@ -99,19 +100,19 @@ func (mysql *mySQLService) Remove(id string) error {
 	}
 	return nil
 }
-func (mysql *mySQLService) GetCars(id string) ([]*types.EmployeeCars, error) {
+func (mysql *mySQLService) GetCars(id string) ([]types.EmployeeCars, error) {
 	rows, err := mysql.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.employee_number = ?", id)
 	if err != nil {
 		return nil, err
 	}
-	var cars []*types.EmployeeCars
+	cars := make([]types.EmployeeCars, 0)
 	for rows.Next() {
 		tmp := new(types.EmployeeCars)
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.NumberPlate, &tmp.Type)
 		if err != nil {
 			fmt.Println(err)
 		}
-		cars = append(cars, tmp)
+		cars = append(cars, *tmp)
 	}
 	err = rows.Err()
 	if err != nil {

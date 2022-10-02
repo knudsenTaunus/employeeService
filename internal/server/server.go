@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// employeeServer is a struct which contains all dependencies for this microservice
-type employeeServer struct {
+// EmployeeServer is a struct which contains all dependencies for this microservice
+type EmployeeServer struct {
 	employeeHandler http.Handler
 	carsHandler     http.Handler
 	router          *mux.Router
@@ -21,25 +21,24 @@ type employeeServer struct {
 
 // New returns an instance of the employeeServer with all dependencies.
 // The served routes can be found in the routes.go file
-func New(eh http.Handler, ch http.Handler, r *mux.Router) *employeeServer {
-	return &employeeServer{
+func New(eh http.Handler, ch http.Handler, r *mux.Router) EmployeeServer {
+	return EmployeeServer{
 		employeeHandler: eh,
 		carsHandler:     ch,
 		router:          r,
 	}
 }
 
-func (s *employeeServer) SetRoutes() *employeeServer {
+func (s EmployeeServer) SetRoutes() {
 	s.router.Handle("/employee", s.employeeHandler).Methods(http.MethodPost, http.MethodDelete)
 	s.router.Handle("/employees", s.employeeHandler).Methods(http.MethodGet)
 	s.router.Handle("/employees/{id}", s.employeeHandler).Methods(http.MethodGet)
 
 	s.router.Handle("/employee/{id}/cars", authorization.ValidateMiddleware(s.carsHandler))
-	return s
 }
 
 // StartServer creates a http.Server and a channel where it waits for SIGINT or SIGTERM.
-func (s *employeeServer) StartServer(address string) {
+func (s EmployeeServer) StartServer(address string) {
 	srv := &http.Server{
 		Addr:    address,
 		Handler: s.router,

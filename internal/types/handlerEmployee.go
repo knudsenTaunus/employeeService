@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -18,8 +17,8 @@ type HandlerEmployee struct {
 	EntryDate      JsonDate `json:"entry_date"`
 }
 
-func (e *HandlerEmployee) ToStorageEmployee() (*StorageEmployee) {
-	return &StorageEmployee{
+func (e HandlerEmployee) ToStorageEmployee() StorageEmployee {
+	return StorageEmployee{
 		FirstName:      e.FirstName,
 		LastName:       e.LastName,
 		Salary:         e.Salary,
@@ -44,25 +43,15 @@ func (jd *JsonDate) UnmarshalJSON(b []byte) error {
 }
 
 func (jd *JsonDate) MarshalJSON() ([]byte, error) {
-	return json.Marshal(jd.Time.Format("01.02.2006"))
+	return json.Marshal(jd.Time.Format("02.01.2006"))
 }
 
-func (e *HandlerEmployee) FromJSON(r io.Reader) error {
-	d := json.NewDecoder(r)
-	return d.Decode(e)
-}
-
-func (e *HandlerEmployee) ToJSON(r io.Writer) error {
-	d := json.NewEncoder(r)
-	return d.Encode(e)
-}
-
-func (e *HandlerEmployee) Validate() error {
+func (e HandlerEmployee) Validate() error {
 	//validate Birthday and EntryDate
 	dateRegex := regexp.MustCompile("[0-9]{4}-[0-9]{2}-[0-9]{2}")
 	result := dateRegex.FindString(e.EntryDate.Time.String())
 	if result == "" {
-		return errors.New("No valid date")
+		return errors.New("no valid date")
 	}
 	return nil
 }
