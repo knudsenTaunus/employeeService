@@ -117,14 +117,14 @@ func (sqlite *sqliteService) Remove(employee_number string) error {
 	return nil
 }
 
-func (sqlite *sqliteService) GetCars(id string) ([]*types.EmployeeCars, error) {
+func (sqlite *sqliteService) GetCars(id string) ([]types.EmployeeCars, error) {
 	rows, err := sqlite.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
 	if err != nil {
 		return nil, err
 	}
-	var cars []*types.EmployeeCars
+	var cars []types.EmployeeCars
 	for rows.Next() {
-		tmp := new(types.EmployeeCars)
+		tmp := types.EmployeeCars{}
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.NumberPlate, &tmp.Type)
 		if err != nil {
 			fmt.Println(err)

@@ -3,7 +3,7 @@ package store
 import "github.com/knudsenTaunus/employeeService/internal/types"
 
 type Database interface {
-	GetCars(id string) ([]*types.EmployeeCars, error)
+	GetCars(id string) ([]types.EmployeeCars, error)
 	FindAllEmployees() (types.StorageEmployees, error)
 	FindAllEmployeesLimit(limit string) (types.StorageEmployees, error)
 	Find(id string) (types.StorageEmployee, error)
@@ -19,7 +19,7 @@ func NewRepository(db Database) *Repository {
 	return &Repository{DB: db}
 }
 
-func (r Repository) GetCars(id string) ([]*types.EmployeeCars, error) {
+func (r Repository) GetCars(id string) ([]types.EmployeeCars, error) {
 	return r.DB.GetCars(id)
 }
 
