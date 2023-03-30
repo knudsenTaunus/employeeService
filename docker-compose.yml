@@ -1,9 +1,8 @@
 version: '3'
 
 services:
-
   mysql-development:
-    image: mysql:8.0.17
+    image: arm64v8/mysql:oracle
     environment:
       MYSQL_ROOT_PASSWORD: employeedatabase
       MYSQL_DATABASE: employees

@@ -6,15 +6,15 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/knudsenTaunus/employeeService/internal/types"
+	"github.com/knudsenTaunus/employeeService/internal/model"
 )
 
 type Repository interface {
-	FindAllEmployees() (types.StorageEmployees, error)
-	FindAllEmployeesLimit(limit string) (types.StorageEmployees, error)
-	Find(id string) (types.StorageEmployee, error)
-	Add(employee types.StorageEmployee) error
-	Remove(id string) error
+	FindAllEmployees() (model.StorageEmployees, error)
+	FindAllEmployeesLimit(limit string) (model.StorageEmployees, error)
+	FindEmployee(id string) (model.StorageEmployee, error)
+	AddEmployee(employee model.StorageEmployee) error
+	RemoveEmployee(id string) error
 }
 
 type Handler struct {
@@ -48,7 +48,7 @@ func NewHandler(db Repository) Handler {
 }
 
 func (h Handler) Get(employeeNumber string, w http.ResponseWriter) {
-	employee, err := h.database.Find(employeeNumber)
+	employee, err := h.database.FindEmployee(employeeNumber)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
@@ -65,7 +65,7 @@ func (h Handler) Get(employeeNumber string, w http.ResponseWriter) {
 }
 
 func (h Handler) Add(w http.ResponseWriter, r *http.Request) {
-	employee := types.HandlerEmployee{}
+	employee := model.HandlerEmployee{}
 	err := json.NewDecoder(r.Body).Decode(&employee)
 	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
@@ -74,7 +74,7 @@ func (h Handler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	storageEmployee := employee.ToStorageEmployee()
-	err = h.database.Add(storageEmployee)
+	err = h.database.AddEmployee(storageEmployee)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
@@ -85,7 +85,7 @@ func (h Handler) Add(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) Remove(w http.ResponseWriter, r *http.Request) {
 	employeeNumber := mux.Vars(r)["employee_number"]
-	err := h.database.Remove(employeeNumber)
+	err := h.database.RemoveEmployee(employeeNumber)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)

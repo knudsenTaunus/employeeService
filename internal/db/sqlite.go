@@ -1,4 +1,4 @@
-package store
+package db
 
 import (
 	"database/sql"
@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/knudsenTaunus/employeeService/internal/config"
-	"github.com/knudsenTaunus/employeeService/internal/types"
+	"github.com/knudsenTaunus/employeeService/internal/model"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type sqliteService struct {
-	con *sql.DB
+type SQLLite struct {
+	conn *sql.DB
 }
 
-func NewSQLite(config *config.Config) (*sqliteService, error) {
+func NewSQLite(config *config.Config) (*SQLLite, error) {
 	db, err := sql.Open("sqlite3", config.Sqlitedatabase.Path)
 	if err != nil {
 		return nil, err
@@ -38,20 +38,20 @@ func NewSQLite(config *config.Config) (*sqliteService, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &sqliteService{
-		con: db,
+	return &SQLLite{
+		conn: db,
 	}, nil
 }
 
-func (sqlite *sqliteService) FindAllEmployees() (types.StorageEmployees, error) {
-	employees := make(types.StorageEmployees, 0)
-	rows, err := sqlite.con.Query("SELECT * FROM employees")
+func (sqlite *SQLLite) FindAllEmployees() (model.StorageEmployees, error) {
+	employees := make(model.StorageEmployees, 0)
+	rows, err := sqlite.conn.Query("SELECT * FROM employees")
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := new(types.StorageEmployee)
+		tmp := model.StorageEmployee{}
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
 		employees = append(employees, tmp)
 		if err != nil {
@@ -65,19 +65,19 @@ func (sqlite *sqliteService) FindAllEmployees() (types.StorageEmployees, error) 
 	return employees, nil
 }
 
-func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) (types.StorageEmployees, error) {
+func (sqlite *SQLLite) FindAllEmployeesLimit(limit string) (model.StorageEmployees, error) {
 	l, err := strconv.Atoi(limit)
 	if err != nil {
 		return nil, err
 	}
-	employees := make(types.StorageEmployees, l)
-	rows, err := sqlite.con.Query("SELECT * FROM employees LIMIT $1", limit)
+	employees := make(model.StorageEmployees, l)
+	rows, err := sqlite.conn.Query("SELECT * FROM employees LIMIT $1", limit)
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := new(types.StorageEmployee)
+		tmp := model.StorageEmployee{}
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
 		employees = append(employees, tmp)
 		if err != nil {
@@ -91,9 +91,9 @@ func (sqlite *sqliteService) FindAllEmployeesLimit(limit string) (types.StorageE
 	return employees, nil
 }
 
-func (sqlite *sqliteService) Find(id string) (types.StorageEmployee, error) {
-	result := types.StorageEmployee{}
-	row := sqlite.con.QueryRow("SELECT * FROM employees WHERE employee_number = $1", id)
+func (sqlite *SQLLite) FindEmployee(id string) (model.StorageEmployee, error) {
+	result := model.StorageEmployee{}
+	row := sqlite.conn.QueryRow("SELECT * FROM employees WHERE employee_number = $1", id)
 	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
 	case sql.ErrNoRows:
 		return result, err
@@ -101,30 +101,30 @@ func (sqlite *sqliteService) Find(id string) (types.StorageEmployee, error) {
 	return result, nil
 }
 
-func (sqlite *sqliteService) Add(e types.StorageEmployee) error {
-	_, err := sqlite.con.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
+func (sqlite *SQLLite) AddEmployee(e model.StorageEmployee) error {
+	_, err := sqlite.conn.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (sqlite *sqliteService) Remove(employee_number string) error {
-	_, err := sqlite.con.Exec("DELETE FROM employees WHERE employee_number = $1", employee_number)
+func (sqlite *SQLLite) RemoveEmployee(employeeNumber string) error {
+	_, err := sqlite.conn.Exec("DELETE FROM employees WHERE employee_number = $1", employeeNumber)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (sqlite *sqliteService) GetCars(id string) ([]types.EmployeeCars, error) {
-	rows, err := sqlite.con.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
+func (sqlite *SQLLite) GetCars(id string) ([]model.EmployeeCars, error) {
+	rows, err := sqlite.conn.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
 	if err != nil {
 		return nil, err
 	}
-	var cars []types.EmployeeCars
+	var cars []model.EmployeeCars
 	for rows.Next() {
-		tmp := types.EmployeeCars{}
+		tmp := model.EmployeeCars{}
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.NumberPlate, &tmp.Type)
 		if err != nil {
 			fmt.Println(err)
@@ -144,7 +144,7 @@ func insertSampleData(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	employees := []*types.StorageEmployee{
+	employees := []*model.StorageEmployee{
 		{
 			FirstName:      "Joe",
 			LastName:       "Biehl",
@@ -184,7 +184,7 @@ func insertSampleData(db *sql.DB) error {
 		},
 	}
 
-	cars := []*types.Car{
+	cars := []*model.Car{
 		{
 			Manufacturer:   "Mercedes",
 			Type:           "SL600",

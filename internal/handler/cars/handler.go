@@ -3,12 +3,12 @@ package cars
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/knudsenTaunus/employeeService/internal/types"
+	"github.com/knudsenTaunus/employeeService/internal/model"
 	"net/http"
 )
 
 type Repository interface {
-	GetCars(id string) ([]types.EmployeeCars, error)
+	GetCars(id string) ([]model.EmployeeCars, error)
 }
 
 type Handler struct {

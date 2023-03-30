@@ -1,4 +1,4 @@
-package types
+package model
 
 import (
 	"encoding/json"
@@ -37,7 +37,7 @@ func (e StorageEmployee) ToJSON(r io.Writer) error {
 	return d.Encode(e)
 }
 
-type StorageEmployees []*StorageEmployee
+type StorageEmployees []StorageEmployee
 
 func (e StorageEmployees) ToHandlerEmployees() []HandlerEmployee {
 	result := make([]HandlerEmployee, 0)
