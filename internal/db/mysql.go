@@ -39,7 +39,12 @@ func NewMySQL(config *config.Config) (*MySQL, error) {
 
 func (mysql *MySQL) FindAllEmployees() (model.StorageEmployees, error) {
 	employees := make([]model.StorageEmployee, 0)
-	rows, err := mysql.conn.Query("SELECT * FROM employees")
+	stmt, err := mysql.conn.Prepare("SELECT * FROM employees")
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query()
 	if err != nil {
 		return nil, err
 	}
@@ -59,16 +64,23 @@ func (mysql *MySQL) FindAllEmployees() (model.StorageEmployees, error) {
 	return employees, nil
 }
 func (mysql *MySQL) FindAllEmployeesLimit(limit string) (model.StorageEmployees, error) {
+	stmt, err := mysql.conn.Prepare("SELECT * FROM employees LIMIT ?")
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	l, err := strconv.Atoi(limit)
 	if err != nil {
 		return nil, err
 	}
-	employees := make([]model.StorageEmployee, l)
-	rows, err := mysql.conn.Query("SELECT * FROM employees LIMIT ?", limit)
-	if err != nil {
-		log.Fatalf("Could not get from sqliteService %v", err)
-	}
-	defer rows.Close()
+
+	employees := make([]model.StorageEmployee, 0, l)
 	for rows.Next() {
 		tmp := model.StorageEmployee{}
 		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
@@ -86,32 +98,59 @@ func (mysql *MySQL) FindAllEmployeesLimit(limit string) (model.StorageEmployees,
 
 func (mysql *MySQL) FindEmployee(id string) (model.StorageEmployee, error) {
 	result := model.StorageEmployee{}
-	row := mysql.conn.QueryRow("SELECT * FROM employees WHERE employee_number = ?", id)
-	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
-	case sql.ErrNoRows:
-		return result, err
+	stmt, err := mysql.conn.Prepare("SELECT * FROM employees WHERE employee_number = ?")
+	if err != nil {
+		return model.StorageEmployee{}, err
+	}
+
+	err = stmt.QueryRow(id).Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return result, model.NotFoundError
+		default:
+			return result, err
+		}
 	}
 	return result, nil
 }
 func (mysql *MySQL) AddEmployee(e model.StorageEmployee) error {
-	_, err := mysql.conn.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
+	stmt, err := mysql.conn.Prepare("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
+
+	_, err = stmt.Exec(e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 func (mysql *MySQL) RemoveEmployee(id string) error {
-	_, err := mysql.conn.Exec("DELETE FROM employees WHERE employee_number = ?", id)
+	stmt, err := mysql.conn.Prepare("DELETE FROM employees WHERE employee_number = ?")
 	if err != nil {
 		return err
 	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 func (mysql *MySQL) GetCars(id string) ([]model.EmployeeCars, error) {
-	rows, err := mysql.conn.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.employee_number = ?", id)
+	stmt, err := mysql.conn.Prepare("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.employee_number = ?")
 	if err != nil {
 		return nil, err
 	}
+
+	rows, err := stmt.Query(id)
+	if err != nil {
+		return nil, err
+	}
+	
 	cars := make([]model.EmployeeCars, 0)
 	for rows.Next() {
 		tmp := new(model.EmployeeCars)

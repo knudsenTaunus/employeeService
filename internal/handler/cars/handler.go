@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/knudsenTaunus/employeeService/internal/model"
+	"github.com/rs/zerolog"
 	"net/http"
 )
 
@@ -13,6 +14,14 @@ type Repository interface {
 
 type Handler struct {
 	Database Repository
+	logger   zerolog.Logger
+}
+
+func NewHandler(db Repository, logger zerolog.Logger) Handler {
+	return Handler{
+		Database: db,
+		logger:   logger,
+	}
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,15 +34,10 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewHandler(db Repository) Handler {
-	return Handler{
-		Database: db,
-	}
-}
-
 func (h Handler) Get(id string, w http.ResponseWriter) {
 	cars, err := h.Database.GetCars(id)
 	if err != nil {
+		h.logger.Error().Err(err).Msg("failed to get cars")
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 	}
 	w.Header().Add("Content-Type", "application/json")
