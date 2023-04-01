@@ -35,12 +35,23 @@ func (jd *JsonDate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(jd.Time.Format("02.01.2006"))
 }
 
-func (e Employee) Validate() error {
+func (e *Employee) Validate() error {
 	//validate Birthday and EntryDate
 	dateRegex := regexp.MustCompile("[0-9]{4}-[0-9]{2}-[0-9]{2}")
 	result := dateRegex.FindString(e.EntryDate.Time.String())
 	if result == "" {
 		return errors.New("no valid date")
 	}
+	return nil
+}
+
+func (e *Employee) Patch(bodyJson []byte) error {
+	employeeBuffer := *e
+
+	if err := json.Unmarshal(bodyJson, e); err != nil {
+		return err
+	}
+
+	e.EmployeeNumber = employeeBuffer.EmployeeNumber
 	return nil
 }

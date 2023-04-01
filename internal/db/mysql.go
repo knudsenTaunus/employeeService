@@ -120,6 +120,21 @@ func (mysql *MySQL) AddEmployee(e model.Employee) error {
 
 	return nil
 }
+
+func (mysql *MySQL) UpdateEmployee(e model.Employee) error {
+	stmt, err := mysql.conn.Prepare("UPDATE employees SET first_name= ?, last_name= ?, salary= ?, birthday= ? WHERE employee_number= ?")
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (mysql *MySQL) RemoveEmployee(id string) error {
 	stmt, err := mysql.conn.Prepare("DELETE FROM employees WHERE employee_number = ?")
 	if err != nil {

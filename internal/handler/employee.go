@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/rs/zerolog"
+	"io"
 	"log"
 
 	"net/http"
@@ -18,16 +19,19 @@ type EmployeeDatabase interface {
 	FindEmployee(id string) (model.Employee, error)
 	AddEmployee(employee model.Employee) error
 	RemoveEmployee(id string) error
+	UpdateEmployee(employee model.Employee) error
 }
 
 type Employee struct {
 	database EmployeeDatabase
+	userChan chan model.Employee
 	logger   zerolog.Logger
 }
 
-func NewEmployee(db EmployeeDatabase, logger zerolog.Logger) Employee {
+func NewEmployee(db EmployeeDatabase, userChan chan model.Employee, logger zerolog.Logger) Employee {
 	return Employee{
 		database: db,
+		userChan: userChan,
 		logger:   logger,
 	}
 }
@@ -45,6 +49,9 @@ func (h Employee) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodPost:
 		h.Add(w, r)
+		return
+	case http.MethodPatch:
+		h.Update(w, r)
 		return
 	case http.MethodDelete:
 		employeeNumber := mux.Vars(r)["employee_number"]
@@ -96,7 +103,44 @@ func (h Employee) Add(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
+	return
+}
+
+func (h Employee) Update(w http.ResponseWriter, r *http.Request) {
+	employeeNumber := mux.Vars(r)["id"]
+	employee, findErr := h.database.FindEmployee(employeeNumber)
+	if findErr != nil {
+		h.logger.Error().Err(findErr).Msgf("failed to find employee %s", employeeNumber)
+		http.Error(w, http.StatusText(404), http.StatusNotFound)
+		return
+	}
+
+	body, bodyErr := io.ReadAll(r.Body)
+	if bodyErr != nil {
+		h.logger.Error().Err(bodyErr).Msg("failed to read body")
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+	patchErr := employee.Patch(body)
+	if patchErr != nil {
+		h.logger.Error().Err(patchErr).Msg("failed to patch employee")
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+	}
+
+	updateErr := h.database.UpdateEmployee(employee)
+	if updateErr != nil {
+		h.logger.Error().Err(updateErr).Msg("failed to save updated employee")
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+	}
+
+	go func() {
+		h.userChan <- employee
+	}()
+
+	w.WriteHeader(http.StatusAccepted)
 	return
 }
 

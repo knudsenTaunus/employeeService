@@ -4,11 +4,17 @@ import (
 	"context"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	userpb "github.com/knudsenTaunus/employeeService/gen/go/proto/user/v1"
 	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/db"
 	"github.com/knudsenTaunus/employeeService/internal/handler"
+	"github.com/knudsenTaunus/employeeService/internal/model"
 	"github.com/knudsenTaunus/employeeService/internal/router"
+	"github.com/knudsenTaunus/employeeService/internal/server/protobuf"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,7 +41,9 @@ func main() {
 		return
 	}
 
-	employeeHandler := handler.NewEmployee(database, logger)
+	userChan := make(chan model.Employee)
+
+	employeeHandler := handler.NewEmployee(database, userChan, logger)
 	carsHandler := handler.NewCar(database, logger)
 
 	employeeRouter := router.New(employeeHandler, carsHandler)
@@ -54,12 +62,29 @@ func main() {
 			logger.Fatal().Err(err).Msg("listen: %s\n")
 		}
 	}()
+	logger.Info().Msg("HTTP Server started")
 
-	logger.Printf("Server started")
+	userRPCServer := protobuf.NewServer(userChan, logger)
+	grpcServer := grpc.NewServer()
+	userpb.RegisterUserServiceServer(grpcServer, userRPCServer)
+
+	lis, err := net.Listen("tcp", "localhost:9879")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			logger.Fatal().Err(err).Msg("failed to start grpc server")
+		}
+	}()
+	logger.Info().Msg("gRPC Server started")
+	go userRPCServer.Invoke()
+
 	<-done
-	logger.Printf("Server stopped")
+	logger.Info().Msg("Server stopped")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer func() {
 		// extra handling here
 		cancel()

@@ -101,6 +101,21 @@ func (sqlite *SQLLite) FindEmployee(id string) (model.Employee, error) {
 	return result, nil
 }
 
+func (sqlite *SQLLite) UpdateEmployee(e model.Employee) error {
+	stmt, err := sqlite.conn.Prepare("UPDATE employees SET first_name= ?, last_name= ?, salary= ?, birthday= ? WHERE employee_number= ?")
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (sqlite *SQLLite) AddEmployee(e model.Employee) error {
 	_, err := sqlite.conn.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber, e.EntryDate.Time)
 	if err != nil {

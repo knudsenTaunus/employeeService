@@ -31,10 +31,10 @@ func New(eh http.Handler, ch http.Handler) Employee {
 }
 
 func (s Employee) SetRoutes() {
-	s.Router.Handle("/employee", s.employeeHandler).Methods(http.MethodPost, http.MethodDelete)
+	s.Router.Handle("/employee", s.employeeHandler).Methods(http.MethodPost)
 	s.Router.Handle("/employee/{employee_number}", s.employeeHandler).Methods(http.MethodDelete)
 	s.Router.Handle("/employees", s.employeeHandler).Methods(http.MethodGet)
-	s.Router.Handle("/employees/{id}", s.employeeHandler).Methods(http.MethodGet)
+	s.Router.Handle("/employees/{id}", s.employeeHandler).Methods(http.MethodGet, http.MethodPatch)
 
 	s.Router.Handle("/employee/{id}/cars", handler.ValidateMiddleware(s.carsHandler)).Methods(http.MethodGet)
 	s.Router.Handle("/employee/{id}/car", handler.ValidateMiddleware(s.carsHandler)).Methods(http.MethodPost)

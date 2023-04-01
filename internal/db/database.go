@@ -13,6 +13,7 @@ type Database interface {
 	RemoveEmployee(id string) error
 	GetCars(id string) ([]model.Car, error)
 	AddCar(car model.StorageCar) error
+	UpdateEmployee(employee model.Employee) error
 }
 
 func New(cfg *config.Config) (Database, error) {

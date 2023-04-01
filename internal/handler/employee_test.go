@@ -58,9 +58,17 @@ func TestHandler_Add(t *testing.T) {
 	tdb.Mock.On("AddEmployee", testEmployee).Return(nil)
 
 	rr := httptest.NewRecorder()
-	handler := NewEmployee(tdb, zerolog.New(os.Stdout))
+	testChan := make(chan model.Employee)
+	testlogger := zerolog.New(os.Stdout)
+	handler := NewEmployee(tdb, testChan, testlogger)
+
+	go func() {
+		result := <-testChan
+		testlogger.Info().Msg(result.FirstName)
+	}()
 
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusCreated, rr.Code)
 	tdb.AssertCalled(t, "AddEmployee", testEmployee)
+	//close(testChan)
 }
