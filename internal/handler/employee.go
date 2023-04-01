@@ -1,4 +1,4 @@
-package employee
+package handler
 
 import (
 	"encoding/json"
@@ -12,27 +12,27 @@ import (
 	"github.com/knudsenTaunus/employeeService/internal/model"
 )
 
-type Repository interface {
-	FindAllEmployees() (model.StorageEmployees, error)
-	FindAllEmployeesLimit(limit string) (model.StorageEmployees, error)
-	FindEmployee(id string) (model.StorageEmployee, error)
-	AddEmployee(employee model.StorageEmployee) error
+type EmployeeDatabase interface {
+	FindAllEmployees() ([]model.Employee, error)
+	FindAllEmployeesLimit(limit string) ([]model.Employee, error)
+	FindEmployee(id string) (model.Employee, error)
+	AddEmployee(employee model.Employee) error
 	RemoveEmployee(id string) error
 }
 
-type Handler struct {
-	database Repository
+type Employee struct {
+	database EmployeeDatabase
 	logger   zerolog.Logger
 }
 
-func NewHandler(db Repository, logger zerolog.Logger) Handler {
-	return Handler{
+func NewEmployee(db EmployeeDatabase, logger zerolog.Logger) Employee {
+	return Employee{
 		database: db,
 		logger:   logger,
 	}
 }
 
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h Employee) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		employeeNumber := mux.Vars(r)["id"]
@@ -58,7 +58,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) Get(employeeNumber string, w http.ResponseWriter) {
+func (h Employee) Get(employeeNumber string, w http.ResponseWriter) {
 	employee, err := h.database.FindEmployee(employeeNumber)
 	if err != nil {
 		if errors.Is(err, model.NotFoundError) {
@@ -73,15 +73,15 @@ func (h Handler) Get(employeeNumber string, w http.ResponseWriter) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(employee.ToHandlerEmployee())
+	err = json.NewEncoder(w).Encode(employee)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 	}
 }
 
-func (h Handler) Add(w http.ResponseWriter, r *http.Request) {
-	employee := model.HandlerEmployee{}
+func (h Employee) Add(w http.ResponseWriter, r *http.Request) {
+	employee := model.Employee{}
 	err := json.NewDecoder(r.Body).Decode(&employee)
 	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
@@ -89,17 +89,18 @@ func (h Handler) Add(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
 	}
-	storageEmployee := employee.ToStorageEmployee()
-	err = h.database.AddEmployee(storageEmployee)
+
+	err = h.database.AddEmployee(employee)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
+	return
 }
 
-func (h Handler) Remove(w http.ResponseWriter, employeeNumber string) {
+func (h Employee) Remove(w http.ResponseWriter, employeeNumber string) {
 	err := h.database.RemoveEmployee(employeeNumber)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to remove employee")
@@ -110,32 +111,33 @@ func (h Handler) Remove(w http.ResponseWriter, employeeNumber string) {
 
 }
 
-func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
+func (h Employee) GetAll(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
 	if limit != "" {
-		res, err := h.database.FindAllEmployeesLimit(limit)
+		employees, err := h.database.FindAllEmployeesLimit(limit)
 		if err != nil {
 			h.logger.Error().Err(err).Msg("failed to get all employees")
 			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Add("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(res.ToHandlerEmployees())
+		err = json.NewEncoder(w).Encode(employees)
 		if err != nil {
 			h.logger.Error().Err(err).Msg("failed to json marshal employees")
 			http.Error(w, http.StatusText(404), http.StatusNotFound)
 		}
 		return
 	}
-	res, err := h.database.FindAllEmployees()
+
+	employees, err := h.database.FindAllEmployees()
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to get all employees")
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
-	handlerEmployees := res.ToHandlerEmployees()
-	err = json.NewEncoder(w).Encode(handlerEmployees)
+	EmployeeEmployees := employees
+	err = json.NewEncoder(w).Encode(EmployeeEmployees)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to json marshal employees")
 		http.Error(w, http.StatusText(404), http.StatusNotFound)

@@ -6,9 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/db"
-	"github.com/knudsenTaunus/employeeService/internal/handler/cars"
-	"github.com/knudsenTaunus/employeeService/internal/handler/employee"
-	"github.com/knudsenTaunus/employeeService/internal/repository"
+	"github.com/knudsenTaunus/employeeService/internal/handler"
 	"github.com/knudsenTaunus/employeeService/internal/router"
 	"github.com/rs/zerolog"
 	"net/http"
@@ -16,11 +14,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-)
-
-var (
-	employeeRepository employee.Repository
-	carRepository      cars.Repository
 )
 
 func init() {
@@ -36,34 +29,20 @@ func main() {
 		logger.Fatal().Err(configErr).Msg("failed to configure service")
 	}
 
-	switch serviceConfig.Environment {
-	case "development":
-		database, err := db.NewSQLite(serviceConfig)
-		if err != nil {
-			logger.Fatal().Err(err).Msg("failed to create development database")
-			return
-		}
-		employeeRepository = repository.NewEmployee(database)
-		carRepository = repository.NewCar(database)
-	case "production":
-		database, err := db.NewMySQL(serviceConfig)
-		if err != nil {
-			logger.Fatal().Err(err).Msg("failed to create development database")
-			return
-		}
-		employeeRepository = repository.NewEmployee(database)
-		carRepository = repository.NewCar(database)
+	database, err := db.New(serviceConfig)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create development database")
+		return
 	}
 
-	employeeHandler := employee.NewHandler(employeeRepository, logger)
-	carsHandler := cars.NewHandler(carRepository, logger)
-	address := fmt.Sprintf("%s:%s", serviceConfig.Server.Host, serviceConfig.Server.Port)
-	employeeRouter := router.New(employeeHandler, carsHandler)
+	employeeHandler := handler.NewEmployee(database, logger)
+	carsHandler := handler.NewCar(database, logger)
 
+	employeeRouter := router.New(employeeHandler, carsHandler)
 	employeeRouter.SetRoutes()
 
 	srv := &http.Server{
-		Addr:    address,
+		Addr:    fmt.Sprintf("%s:%s", serviceConfig.Server.Host, serviceConfig.Server.Port),
 		Handler: employeeRouter.Router,
 	}
 

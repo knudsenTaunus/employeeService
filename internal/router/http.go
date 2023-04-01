@@ -3,7 +3,7 @@ package router
 import (
 	"context"
 	"github.com/gorilla/mux"
-	"github.com/knudsenTaunus/employeeService/internal/handler/authorization"
+	"github.com/knudsenTaunus/employeeService/internal/handler"
 	"log"
 	"net/http"
 	"os"
@@ -36,7 +36,8 @@ func (s Employee) SetRoutes() {
 	s.Router.Handle("/employees", s.employeeHandler).Methods(http.MethodGet)
 	s.Router.Handle("/employees/{id}", s.employeeHandler).Methods(http.MethodGet)
 
-	s.Router.Handle("/employee/{id}/cars", authorization.ValidateMiddleware(s.carsHandler))
+	s.Router.Handle("/employee/{id}/cars", handler.ValidateMiddleware(s.carsHandler)).Methods(http.MethodGet)
+	s.Router.Handle("/employee/{id}/car", handler.ValidateMiddleware(s.carsHandler)).Methods(http.MethodPost)
 }
 
 // StartServer creates a http.Server and a channel where it waits for SIGINT or SIGTERM.

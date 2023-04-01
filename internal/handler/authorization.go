@@ -1,4 +1,4 @@
-package authorization
+package handler
 
 import (
 	"net/http"
@@ -11,7 +11,7 @@ func ValidateMiddleware(next http.Handler) http.Handler {
 		if authorizationHeader != "" {
 			bearerToken := strings.Split(authorizationHeader, " ")
 			if bearerToken[0] != "foo" || bearerToken[1] != "bar" {
-				http.Error(w, http.StatusText(403), 403)
+				http.Error(w, http.StatusText(http.StatusForbidden), 403)
 				return
 			}
 			next.ServeHTTP(w, req)

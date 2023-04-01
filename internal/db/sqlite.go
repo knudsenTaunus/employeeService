@@ -43,16 +43,16 @@ func NewSQLite(config *config.Config) (*SQLLite, error) {
 	}, nil
 }
 
-func (sqlite *SQLLite) FindAllEmployees() (model.StorageEmployees, error) {
-	employees := make(model.StorageEmployees, 0)
+func (sqlite *SQLLite) FindAllEmployees() ([]model.Employee, error) {
+	employees := make([]model.Employee, 0)
 	rows, err := sqlite.conn.Query("SELECT * FROM employees")
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := model.StorageEmployee{}
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
+		tmp := model.Employee{}
+		err := rows.Scan(&tmp.EmployeeNumber, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -65,20 +65,20 @@ func (sqlite *SQLLite) FindAllEmployees() (model.StorageEmployees, error) {
 	return employees, nil
 }
 
-func (sqlite *SQLLite) FindAllEmployeesLimit(limit string) (model.StorageEmployees, error) {
+func (sqlite *SQLLite) FindAllEmployeesLimit(limit string) ([]model.Employee, error) {
 	l, err := strconv.Atoi(limit)
 	if err != nil {
 		return nil, err
 	}
-	employees := make(model.StorageEmployees, l)
+	employees := make([]model.Employee, l)
 	rows, err := sqlite.conn.Query("SELECT * FROM employees LIMIT $1", limit)
 	defer rows.Close()
 	if err != nil {
 		log.Fatalf("Could not get from sqliteService %v", err)
 	}
 	for rows.Next() {
-		tmp := model.StorageEmployee{}
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday, &tmp.EmployeeNumber, &tmp.EntryDate)
+		tmp := model.Employee{}
+		err := rows.Scan(&tmp.EmployeeNumber, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
 		employees = append(employees, tmp)
 		if err != nil {
 			return nil, err
@@ -91,18 +91,18 @@ func (sqlite *SQLLite) FindAllEmployeesLimit(limit string) (model.StorageEmploye
 	return employees, nil
 }
 
-func (sqlite *SQLLite) FindEmployee(id string) (model.StorageEmployee, error) {
-	result := model.StorageEmployee{}
+func (sqlite *SQLLite) FindEmployee(id string) (model.Employee, error) {
+	result := model.Employee{}
 	row := sqlite.conn.QueryRow("SELECT * FROM employees WHERE employee_number = $1", id)
-	switch err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday, &result.EmployeeNumber, &result.EntryDate); err {
+	switch err := row.Scan(&result.EmployeeNumber, &result.FirstName, &result.LastName, &result.Salary, &result.Birthday.Time, &result.EmployeeNumber, &result.EntryDate.Time); err {
 	case sql.ErrNoRows:
 		return result, err
 	}
 	return result, nil
 }
 
-func (sqlite *SQLLite) AddEmployee(e model.StorageEmployee) error {
-	_, err := sqlite.conn.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday, e.EmployeeNumber, e.EntryDate)
+func (sqlite *SQLLite) AddEmployee(e model.Employee) error {
+	_, err := sqlite.conn.Exec("INSERT INTO employees (first_name, last_name, salary, birthday, employee_number, entry_date) VALUES ($1,$2,$3,$4,$5,$6)", e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber, e.EntryDate.Time)
 	if err != nil {
 		return err
 	}
@@ -117,15 +117,15 @@ func (sqlite *SQLLite) RemoveEmployee(employeeNumber string) error {
 	return nil
 }
 
-func (sqlite *SQLLite) GetCars(id string) ([]model.EmployeeCars, error) {
-	rows, err := sqlite.conn.Query("SELECT employees.id, employees.first_name, employees.last_name, companycars.number_plate, companycars.type FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.id = $1", id)
+func (sqlite *SQLLite) GetCars(employeeNumber string) ([]model.Car, error) {
+	rows, err := sqlite.conn.Query("SELECT employees.first_name, employees.last_name, companycars.number_plate, companycars.type, employees.employee_number FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.employee_number = $1", employeeNumber)
 	if err != nil {
 		return nil, err
 	}
-	var cars []model.EmployeeCars
+	var cars []model.Car
 	for rows.Next() {
-		tmp := model.EmployeeCars{}
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.NumberPlate, &tmp.Type)
+		tmp := model.Car{}
+		err := rows.Scan(&tmp.FirstName, &tmp.LastName, &tmp.NumberPlate, &tmp.Type)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -139,52 +139,66 @@ func (sqlite *SQLLite) GetCars(id string) ([]model.EmployeeCars, error) {
 	return cars, nil
 }
 
+func (sqlite *SQLLite) AddCar(car model.StorageCar) error {
+	stmt, err := sqlite.conn.Prepare("INSERT INTO companycars (manufacturer, type, number_plate, employee_number) VALUES (?,?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(car.Manufacturer, car.Type, car.NumberPlate, car.EmployeeNumber)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func insertSampleData(db *sql.DB) error {
 	today, err := time.Parse("2006-01-02", time.Now().Format("2006-01-02"))
 	if err != nil {
 		return err
 	}
-	employees := []*model.StorageEmployee{
+	employees := []*model.Employee{
 		{
 			FirstName:      "Joe",
 			LastName:       "Biehl",
 			Salary:         50000,
-			Birthday:       time.Date(1986, 1, 18, 0, 0, 0, 0, time.UTC),
+			Birthday:       model.JsonDate{Time: time.Date(1986, 1, 18, 0, 0, 0, 0, time.UTC)},
 			EmployeeNumber: 1,
-			EntryDate:      today,
+			EntryDate:      model.JsonDate{Time: today},
 		},
 		{
 			FirstName:      "Jan",
 			LastName:       "Heinrich",
 			Salary:         500000,
-			Birthday:       time.Date(1984, 2, 24, 0, 0, 0, 0, time.UTC),
+			Birthday:       model.JsonDate{Time: time.Date(1984, 2, 24, 0, 0, 0, 0, time.UTC)},
 			EmployeeNumber: 2,
-			EntryDate:      today,
+			EntryDate:      model.JsonDate{Time: today},
 		}, {
 			FirstName:      "Rusalka",
 			LastName:       "Ertel",
 			Salary:         250000,
-			Birthday:       time.Date(1988, 3, 10, 0, 0, 0, 0, time.UTC),
+			Birthday:       model.JsonDate{Time: time.Date(1988, 3, 10, 0, 0, 0, 0, time.UTC)},
 			EmployeeNumber: 3,
-			EntryDate:      today,
+			EntryDate:      model.JsonDate{Time: today},
 		}, {
 			FirstName:      "Tauseef",
 			LastName:       "Al-Noor",
 			Salary:         70000,
-			Birthday:       time.Date(1987, 11, 2, 0, 0, 0, 0, time.UTC),
+			Birthday:       model.JsonDate{Time: time.Date(1987, 11, 2, 0, 0, 0, 0, time.UTC)},
 			EmployeeNumber: 4,
-			EntryDate:      today,
+			EntryDate:      model.JsonDate{Time: today},
 		}, {
 			FirstName:      "Lotte",
 			LastName:       "Kwandt",
 			Salary:         5000000,
-			Birthday:       time.Date(1988, 7, 27, 0, 0, 0, 0, time.UTC),
+			Birthday:       model.JsonDate{Time: time.Date(1988, 7, 27, 0, 0, 0, 0, time.UTC)},
 			EmployeeNumber: 5,
-			EntryDate:      today,
+			EntryDate:      model.JsonDate{Time: today},
 		},
 	}
 
-	cars := []*model.Car{
+	cars := []*model.StorageCar{
 		{
 			Manufacturer:   "Mercedes",
 			Type:           "SL600",

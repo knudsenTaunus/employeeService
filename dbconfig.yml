@@ -1,0 +1,6 @@
+---
+development:
+  dialect: mysql
+  datasource: root:employeedatabase@tcp(127.0.0.1:3306)/employees?parseTime=true
+  dir: migrations
+  table: migrations
