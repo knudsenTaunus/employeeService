@@ -1,3 +1,5 @@
-# Employee Service
+# User Service
 
-This is a practice example mainly focused on architecture
+## Running the Service
+
+

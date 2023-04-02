@@ -4,8 +4,8 @@ services:
   mysql-development:
     image: arm64v8/mysql:oracle
     environment:
-      MYSQL_ROOT_PASSWORD: employeedatabase
-      MYSQL_DATABASE: employees
+      MYSQL_ROOT_PASSWORD: usersdatabase
+      MYSQL_DATABASE: users
     ports:
       - "3306:3306"
     volumes:

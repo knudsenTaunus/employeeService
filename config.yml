@@ -1,16 +1,18 @@
-# environment
-
 server:
   host: 127.0.0.1
   port: 8080
 
+grpc:
+  host: 127.0.0.1
+  port: 9879
+
 mysqldatabase:
   user: root
-  password: employeedatabase
+  password: usersdatabase
   dbhost: 127.0.0.1
   dbport: 3306
 
-sqlitedatabase:
-  path: ../development.db
+crypt:
+  secret: abc&1*~#^2^#s0^=)^^7%b34
 
 environment: production

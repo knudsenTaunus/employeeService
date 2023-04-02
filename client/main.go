@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
-	userpb "github.com/knudsenTaunus/employeeService/gen/go/proto/user/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"io"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	userpb "github.com/knudsenTaunus/employeeService/generated/go/proto/user/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -47,16 +50,17 @@ func subscribe(client userpb.UserServiceClient, clientName string) {
 
 	for {
 		updateResp, err := registerResp.Recv()
-		if err == io.EOF {
-			return
-		}
-
 		if err != nil {
-			log.Fatalln("Receiving", err)
+			if status.Code(err) == codes.Unavailable {
+				log.Fatalln("server is not available anymore", err)
+				return
+			}
+
+			log.Fatalln("received error: ", err)
 			return
 		}
 
-		log.Print(updateResp.FirstName)
+		log.Print(updateResp.String())
 	}
 
 }

@@ -2,31 +2,43 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/google/uuid"
 	"github.com/knudsenTaunus/employeeService/internal/config"
 	"github.com/knudsenTaunus/employeeService/internal/model"
 )
 
-type MySQL struct {
-	conn *sql.DB
+var mysqlErr *mysql.MySQLError
+
+type Cryptor3000 interface {
+	Encrypt(text string) (string, error)
+	Decrypt(text string) (string, error)
 }
 
-func NewMySQL(config *config.Config) (*MySQL, error) {
-	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", config.Mysqldatabase.User, config.Mysqldatabase.Password, config.Mysqldatabase.Host, config.Mysqldatabase.Port, "employees")
+type MySQL struct {
+	conn    *sql.DB
+	cryptor Cryptor3000
+}
+
+func NewMySQL(config *config.Config, cryptor Cryptor3000) (*MySQL, error) {
+	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", config.Mysqldatabase.User, config.Mysqldatabase.Password, config.Mysqldatabase.Host, config.Mysqldatabase.Port, "users")
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MySQL{conn: db}, nil
+	return &MySQL{conn: db, cryptor: cryptor}, nil
 }
 
-func (mysql *MySQL) FindAllEmployees() ([]model.Employee, error) {
-	employees := make([]model.Employee, 0)
-	stmt, err := mysql.conn.Prepare("SELECT first_name, last_name, salary, birthday, employee_number, entry_date FROM employees")
+func (m *MySQL) GetAll() ([]model.User, error) {
+	employees := make([]model.User, 0)
+	stmt, err := m.conn.Prepare("SELECT id, first_name, last_name, nickname, password, email, country, created_at, updated_at FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +48,21 @@ func (mysql *MySQL) FindAllEmployees() ([]model.Employee, error) {
 		return nil, err
 	}
 	defer rows.Close()
+
 	for rows.Next() {
-		tmp := model.Employee{}
-		err := rows.Scan(&tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
+		tmp := model.User{}
+		encryptedPassword := ""
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Nickname, &encryptedPassword, &tmp.Email, &tmp.Country, &tmp.CreatedAt, &tmp.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
+
+		decryptedPassword, err := m.cryptor.Decrypt(encryptedPassword)
+		if err != nil {
+			return nil, err
+		}
+		tmp.Password = decryptedPassword
+
 		employees = append(employees, tmp)
 	}
 	err = rows.Err()
@@ -51,143 +72,149 @@ func (mysql *MySQL) FindAllEmployees() ([]model.Employee, error) {
 	return employees, nil
 }
 
-func (mysql *MySQL) FindAllEmployeesLimit(limit string) ([]model.Employee, error) {
-	stmt, err := mysql.conn.Prepare("SELECT * FROM employees LIMIT ?")
+func (m *MySQL) GetPaginatedAndFiltered(page, pageSize int, filter string) ([]model.User, error) {
+	limit := page * pageSize
+	offset := (page * pageSize) - pageSize
+	filterKeyValue := strings.Split(filter, "=")
+
+	queryStatement := fmt.Sprintf("SELECT * FROM users WHERE %s = '%s' LIMIT %d, %d", filterKeyValue[0], filterKeyValue[1], offset, limit)
+
+	rows, err := m.conn.Query(queryStatement)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(limit)
-	if err != nil {
-		return nil, err
-	}
 	defer rows.Close()
 
-	l, err := strconv.Atoi(limit)
-	if err != nil {
-		return nil, err
-	}
-
-	employees := make([]model.Employee, 0, l)
+	users := make([]model.User, 0, limit)
 	for rows.Next() {
-		tmp := model.Employee{}
-		err := rows.Scan(&tmp.EmployeeNumber, &tmp.FirstName, &tmp.LastName, &tmp.Salary, &tmp.Birthday.Time, &tmp.EmployeeNumber, &tmp.EntryDate.Time)
-		employees = append(employees, tmp)
+		tmp := model.User{}
+		encryptedPassword := ""
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Nickname, encryptedPassword, &tmp.Email, &tmp.Country, &tmp.CreatedAt, &tmp.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
+
+		decryptedPassword, err := m.cryptor.Decrypt(encryptedPassword)
+		if err != nil {
+			return nil, err
+		}
+		tmp.Password = decryptedPassword
+		users = append(users, tmp)
 	}
+
 	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
-	return employees, nil
+	return users, nil
 }
 
-func (mysql *MySQL) FindEmployee(id string) (model.Employee, error) {
-	result := model.Employee{}
-	stmt, err := mysql.conn.Prepare("SELECT first_name, last_name, salary, birthday, employee_number, entry_date FROM employees WHERE employee_number = ?")
+func (m *MySQL) Get(id string) (model.User, error) {
+	tmp := model.User{}
+	stmt, err := m.conn.Prepare("SELECT id, first_name, last_name, nickname, password, email, country, created_at, updated_at FROM users WHERE id = ?")
 	if err != nil {
-		return model.Employee{}, err
+		return model.User{}, err
 	}
 
-	err = stmt.QueryRow(id).Scan(&result.FirstName, &result.LastName, &result.Salary, &result.Birthday.Time, &result.EmployeeNumber, &result.EntryDate.Time)
+	var encryptedPassword string
+
+	err = stmt.QueryRow(id).Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Nickname, &encryptedPassword, &tmp.Email, &tmp.Country, &tmp.CreatedAt, &tmp.UpdatedAt)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			return result, model.NotFoundError
+			return tmp, model.NotFoundError
 		default:
-			return result, err
+			return tmp, err
 		}
 	}
-	return result, nil
-}
-func (mysql *MySQL) AddEmployee(e model.Employee) error {
-	stmt, err := mysql.conn.Prepare("INSERT INTO employees (id, first_name, last_name, salary, birthday, employee_number, entry_date) VALUES (?,?,?,?,?,?,?)")
+
+	decryptedPassword, err := m.cryptor.Decrypt(encryptedPassword)
 	if err != nil {
-		return err
+		return model.User{}, err
+	}
+
+	tmp.Password = decryptedPassword
+
+	return tmp, nil
+}
+func (m *MySQL) Create(u model.User) (model.User, error) {
+	stmt, err := m.conn.Prepare("INSERT INTO users (id, first_name, last_name, nickname, password, email, country, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)")
+	if err != nil {
+		return model.User{}, err
 	}
 
 	id, err := uuid.NewRandom()
 	if err != nil {
-		return err
+		return model.User{}, err
 	}
 
-	_, err = stmt.Exec(id.String(), e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber, e.EntryDate.Time)
+	encryptedPassword, cryptErr := m.cryptor.Encrypt(u.Password)
+	if cryptErr != nil {
+		return model.User{}, cryptErr
+	}
+
+	_, err = stmt.Exec(id.String(), u.FirstName, u.LastName, u.Nickname, encryptedPassword, u.Email, u.Country, time.Now().UTC(), time.Now().UTC())
 	if err != nil {
-		return err
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			if strings.Contains(err.Error(), "users.email") {
+				return model.User{}, model.DuplicateMailError
+			}
+
+			if strings.Contains(err.Error(), "users.nickname") {
+				return model.User{}, model.DuplicateNickError
+			}
+		}
+		return model.User{}, err
 	}
 
-	return nil
+	createdUser, err := m.Get(id.String())
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return createdUser, nil
 }
 
-func (mysql *MySQL) UpdateEmployee(e model.Employee) error {
-	stmt, err := mysql.conn.Prepare("UPDATE employees SET first_name= ?, last_name= ?, salary= ?, birthday= ? WHERE employee_number= ?")
+func (m *MySQL) Update(u model.User) (model.User, error) {
+	stmt, err := m.conn.Prepare("UPDATE users SET first_name= ?, last_name= ?, password= ?, email=?, country=?, updated_at=? WHERE id= ?")
 	if err != nil {
-		return err
+		return model.User{}, err
 	}
 
-	_, err = stmt.Exec(e.FirstName, e.LastName, e.Salary, e.Birthday.Time, e.EmployeeNumber)
-	if err != nil {
-		return err
+	encryptedPassword, cryptErr := m.cryptor.Encrypt(u.Password)
+	if cryptErr != nil {
+		return model.User{}, cryptErr
 	}
 
-	return nil
+	_, err = stmt.Exec(u.FirstName, u.LastName, encryptedPassword, u.Email, u.Country, time.Now().UTC(), u.ID)
+	if err != nil {
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			if strings.Contains(err.Error(), "users.email") {
+				return model.User{}, model.DuplicateMailError
+			}
+
+			if strings.Contains(err.Error(), "users.nickname") {
+				return model.User{}, model.DuplicateNickError
+			}
+		}
+	}
+
+	updatedUser, err := m.Get(u.ID)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return updatedUser, nil
 }
 
-func (mysql *MySQL) RemoveEmployee(id string) error {
-	stmt, err := mysql.conn.Prepare("DELETE FROM employees WHERE employee_number = ?")
+func (m *MySQL) Delete(id string) error {
+	stmt, err := m.conn.Prepare("DELETE FROM users WHERE id = ?")
 	if err != nil {
 		return err
 	}
 
 	_, err = stmt.Exec(id)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-func (mysql *MySQL) GetCars(id string) ([]model.Car, error) {
-	stmt, err := mysql.conn.Prepare("SELECT employees.first_name, employees.last_name, companycars.number_plate, companycars.type, employees.employee_number FROM employees JOIN companycars ON employees.employee_number=companycars.employee_number WHERE employees.employee_number = ?")
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := stmt.Query(id)
-	if err != nil {
-		return nil, err
-	}
-
-	cars := make([]model.Car, 0)
-	for rows.Next() {
-		tmp := new(model.Car)
-		err := rows.Scan(&tmp.FirstName, &tmp.LastName, &tmp.NumberPlate, &tmp.Type, &tmp.EmployeeNumber)
-		if err != nil {
-			fmt.Println(err)
-		}
-		cars = append(cars, *tmp)
-	}
-	err = rows.Err()
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-	return cars, nil
-}
-
-func (mysql *MySQL) AddCar(car model.StorageCar) error {
-	stmt, err := mysql.conn.Prepare("INSERT INTO companycars (id, manufacturer, type, number_plate, employee_number) VALUES (?,?,?,?,?)")
-	if err != nil {
-		return err
-	}
-
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return err
-	}
-
-	_, err = stmt.Exec(id.String(), car.Manufacturer, car.Type, car.NumberPlate, car.EmployeeNumber)
 	if err != nil {
 		return err
 	}

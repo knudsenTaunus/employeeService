@@ -1,25 +1,31 @@
 package config
 
 import (
-	"gopkg.in/yaml.v2"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	Server struct{
+	Server struct {
 		Host string `yaml:"host"`
 		Port string `yaml:"port"`
-
 	}
-	Mysqldatabase struct{
-		User string `yaml:"user"`
-		Host string `yaml:"dbhost"`
-		Port string `yaml:"dbport"`
+
+	Grpc struct {
+		Host string `yaml:"host"`
+		Port string `yaml:"port"`
+	}
+
+	Mysqldatabase struct {
+		User     string `yaml:"user"`
+		Host     string `yaml:"dbhost"`
+		Port     string `yaml:"dbport"`
 		Password string `yaml:"password"`
 	}
 
-	Sqlitedatabase struct{
-		Path string `yaml:"path"`
+	Crypt struct {
+		Secret string `yaml:"secret"`
 	}
 
 	Environment string

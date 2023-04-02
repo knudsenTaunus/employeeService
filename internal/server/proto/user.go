@@ -1,8 +1,8 @@
-package protobuf
+package proto
 
 import (
 	"context"
-	userpb "github.com/knudsenTaunus/employeeService/gen/go/proto/user/v1"
+	userpb "github.com/knudsenTaunus/employeeService/generated/go/proto/user/v1"
 	"github.com/knudsenTaunus/employeeService/internal/model"
 	"github.com/rs/zerolog"
 	"time"
@@ -11,17 +11,18 @@ import (
 type UserServer struct {
 	userpb.UnimplementedUserServiceServer
 	logger      zerolog.Logger
-	updateChan  chan model.Employee
+	updateChan  chan model.User
 	subscribers map[string]userpb.UserService_RegisterServer
 }
 
-func NewServer(userChan chan model.Employee, logger zerolog.Logger) *UserServer {
+func NewServer(userChan chan model.User, logger zerolog.Logger) *UserServer {
 	return &UserServer{
 		UnimplementedUserServiceServer: userpb.UnimplementedUserServiceServer{},
 		logger:                         logger,
 		updateChan:                     userChan,
 		subscribers:                    make(map[string]userpb.UserService_RegisterServer),
 	}
+
 }
 
 func (u *UserServer) Invoke() {
