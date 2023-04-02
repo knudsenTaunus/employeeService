@@ -90,7 +90,7 @@ func (m *MySQL) GetPaginatedAndFiltered(page, pageSize int, filter string) ([]mo
 	for rows.Next() {
 		tmp := model.User{}
 		encryptedPassword := ""
-		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Nickname, encryptedPassword, &tmp.Email, &tmp.Country, &tmp.CreatedAt, &tmp.UpdatedAt)
+		err := rows.Scan(&tmp.ID, &tmp.FirstName, &tmp.LastName, &tmp.Nickname, &encryptedPassword, &tmp.Email, &tmp.Country, &tmp.CreatedAt, &tmp.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
