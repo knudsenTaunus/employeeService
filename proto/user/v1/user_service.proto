@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto.user.v1;
 
-option go_package = "github.com/knudsenTaunus/employeeService/internal/router/protobuf/gen/go/user/v1;userpb";
+option go_package = "github.com/knudsenTaunus/employeeService/internal/router/protobuf/generated/go/user/v1;userpb";
 
 service UserService {
   rpc Register (UserServiceRegisterRequest) returns (stream UserServiceRegisterResponse);
