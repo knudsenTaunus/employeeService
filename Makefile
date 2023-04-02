@@ -4,9 +4,12 @@ migrate:
 
 .PHONY: protobuf
 protobuf:
-	buf generate
+	go run github.com/bufbuild/buf/cmd/buf@v1.0.0 generate
 
 .PHONY: protobuf/lint
 protobuf/lint:
 	buf lint
 
+.PHONY: test
+test:
+	go test -v -coverpkg=./... ./...

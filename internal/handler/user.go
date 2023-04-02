@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/go-playground/validator/v10"
+
 	"github.com/rs/zerolog"
 
 	"net/http"
@@ -18,22 +20,24 @@ type UserDatabase interface {
 	GetAll() ([]model.User, error)
 	GetPaginatedAndFiltered(page, pageSize int, filter string) ([]model.User, error)
 	Get(id string) (model.User, error)
-	Create(User model.User) (model.User, error)
+	Create(user model.User) (model.User, error)
 	Delete(id string) error
-	Update(User model.User) (model.User, error)
+	Update(user model.User) (model.User, error)
 }
 
 type User struct {
-	database UserDatabase
-	userChan chan model.User
-	logger   zerolog.Logger
+	database  UserDatabase
+	userChan  chan model.User
+	validator *validator.Validate
+	logger    zerolog.Logger
 }
 
 func NewUser(db UserDatabase, userChan chan model.User, logger zerolog.Logger) User {
 	return User{
-		database: db,
-		userChan: userChan,
-		logger:   logger,
+		database:  db,
+		userChan:  userChan,
+		validator: validator.New(),
+		logger:    logger,
 	}
 }
 
@@ -135,10 +139,16 @@ func (h User) GetAll(w http.ResponseWriter, r *http.Request) {
 func (h User) Create(w http.ResponseWriter, r *http.Request) {
 	user := model.User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
-	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
 		h.logger.Error().Err(err).Send()
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+	validationErr := h.validator.Struct(user)
+	if validationErr != nil {
+		h.logger.Error().Err(err).Send()
+		http.Error(w, "validation failed", http.StatusBadRequest)
 		return
 	}
 

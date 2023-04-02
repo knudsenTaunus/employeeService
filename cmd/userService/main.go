@@ -27,15 +27,19 @@ import (
 
 func init() {
 	zerolog.TimeFieldFormat = time.RFC3339
-	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 }
 
 func main() {
 	logger := zerolog.New(os.Stdout)
-	logger = logger.With().Caller().Logger()
+
 	serviceConfig, configErr := config.NewConfig("./config.yml")
 	if configErr != nil {
 		logger.Fatal().Err(configErr).Msg("failed to configure service")
+	}
+
+	if serviceConfig.Environment == "development" {
+		logger = logger.With().Caller().Logger()
 	}
 
 	cryptor := crypt.New(serviceConfig.Crypt.Secret)
