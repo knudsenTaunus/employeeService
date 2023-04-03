@@ -1,8 +1,9 @@
-package integration
+package test
 
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,6 +35,12 @@ func TestGetAllUsers(t *testing.T) {
 	defer testServer.Close()
 	r, err := http.NewRequest("GET", testServer.URL+"/user", nil)
 	assert.NoError(t, err)
+
+	testTimeString := time.Now().UTC().Format(time.RFC3339)
+	fmt.Println(testTimeString)
+	result, err := time.Parse(time.RFC3339, testTimeString)
+	assert.NoError(t, err)
+	fmt.Println(result.String())
 
 	rr := httptest.NewRecorder()
 	rest.MuxRouter(user).ServeHTTP(rr, r)
@@ -83,8 +90,8 @@ func TestGetUser(t *testing.T) {
 		Password:  "foo",
 		Email:     "foo@bar.de",
 		Country:   "Germany",
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}, nil)
 
 	r, err := http.NewRequest("GET", testServer.URL+"/users/1234", nil)
@@ -123,8 +130,8 @@ func TestUpdateUser(t *testing.T) {
 		Password:  "foo",
 		Email:     "foo@bar.de",
 		Country:   "Germany",
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	testdb.Mock.On("Update", mock.AnythingOfType("model.User")).Return(updateUser, nil)

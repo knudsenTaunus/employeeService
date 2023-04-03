@@ -1,4 +1,4 @@
-package integration
+package test
 
 import (
 	"github.com/knudsenTaunus/employeeService/internal/model"
